@@ -4,11 +4,5 @@
 @theme {
   --font-sans: "Inter", sans-serif;
   --font-mono: "JetBrains Mono", monospace;
-  --color-aeterium-bg: #FAFAFA;
-  --color-aeterium-text: #111111;
 }
-
-body {
-  background-color: var(--color-aeterium-bg);
-  color: var(--color-aeterium-text);
-}
+body { background-color: #FAFAFA; color: #111111; font-family: "Inter", sans-serif; }
