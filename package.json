@@ -1,0 +1,9 @@
+{
+  "name": "aeterium-ecom-drop",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Dropshipping Headless Engine",
+  "scripts": {
+    "start": "node market_scanner.js"
+  }
+}

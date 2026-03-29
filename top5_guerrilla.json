@@ -1,0 +1,47 @@
+[
+  {
+    "id": "70",
+    "name": "Compostador Eléctrico de Cocina Ewooster InnovaGoods",
+    "stock": 871,
+    "cost": 174.86,
+    "pvp": 247.85,
+    "margin": 72.98999999999998,
+    "category": "Hogar y cocina"
+  },
+  {
+    "id": "61",
+    "name": "Freidora de Aire con Grill, Accesorios y Recetario InnovaGoods Fryinn 12-in-1 6000 Negro Acero 3400 W 6 L",
+    "stock": 250,
+    "cost": 96.51,
+    "pvp": 132.15,
+    "margin": 35.64,
+    "category": "Hogar y cocina"
+  },
+  {
+    "id": "193",
+    "name": "Tendedero Plegable Vertical con Ruedas Dreeyl InnovaGoods 38 Barras",
+    "stock": 334,
+    "cost": 54.58,
+    "pvp": 82.56,
+    "margin": 27.980000000000004,
+    "category": "Hogar y cocina"
+  },
+  {
+    "id": "337",
+    "name": "Barbacoa Plegable de Acero Inoxidable para Carbón ExelQ InnovaGoods",
+    "stock": 373,
+    "cost": 33.74,
+    "pvp": 53.64,
+    "margin": 19.9,
+    "category": "Jardín"
+  },
+  {
+    "id": "194",
+    "name": "Secadora Eléctrica Portátil de 2 Alturas Dupledry InnovaGoods 1200 W",
+    "stock": 560,
+    "cost": 48.81,
+    "pvp": 66.03,
+    "margin": 17.22,
+    "category": "Hogar y cocina"
+  }
+]
