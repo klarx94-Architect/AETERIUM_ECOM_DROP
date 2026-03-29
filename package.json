@@ -4,6 +4,17 @@
   "type": "module",
   "description": "Dropshipping Headless Engine",
   "scripts": {
-    "start": "node market_scanner.js"
+    "start": "node server.js",
+    "server": "node server.js",
+    "client": "npm run dev --prefix frontend",
+    "dev": "concurrently \"npm run server\" \"npm run client\""
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "cors": "^2.8.6",
+    "express": "^5.2.1"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
   }
 }

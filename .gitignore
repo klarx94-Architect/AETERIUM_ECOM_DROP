@@ -1,3 +1,4 @@
 node_modules/
 raw_market_data.json
 test.js
+node_modules/ 
