@@ -1,58 +1,58 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
-import { Shield, Zap, Search } from 'lucide-react';
+import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
+import { Shield, Zap } from 'lucide-react';
+import GuerrillaIntel from './pages/GuerrillaIntel';
+import DropeaSync from './pages/DropeaSync';
 
-// Vistas Placeholder para que el Router no falle
-const GuerrillaIntel = () => (
-  <div className="bg-white p-8 rounded-xl border border-slate-200 shadow-sm">
-    <h2 className="text-xl font-bold mb-4 font-sans text-slate-800">Inteligencia de Mercado</h2>
-    <div className="flex gap-2 mb-6">
-      <div className="relative flex-1">
-        <Search className="absolute left-3 top-3 h-5 w-5 text-slate-400" />
-        <input type="text" placeholder="Ej: Productos con margen > 20€" className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-lg outline-none focus:border-slate-800 font-sans" />
+function Sidebar() {
+  const location = useLocation();
+  const links = [
+    { to: '/', icon: <Zap size={18} className="text-yellow-400" />, label: 'Guerrilla Intel' },
+    { to: '/sync', icon: <Shield size={18} />, label: 'Dropea Sync' },
+  ];
+  return (
+    <aside className="w-72 bg-slate-900 text-white flex flex-col shadow-2xl z-10 shrink-0">
+      <div className="p-8 border-b border-slate-800">
+        <div className="flex items-center gap-3 mb-1">
+          <svg width="32" height="32" viewBox="0 0 32 32" fill="none" aria-label="AETERIUM" xmlns="http://www.w3.org/2000/svg">
+            <polygon points="16,2 30,28 2,28" fill="none" stroke="#facc15" strokeWidth="2" strokeLinejoin="round"/>
+            <line x1="16" y1="12" x2="16" y2="22" stroke="#facc15" strokeWidth="1.5"/>
+            <circle cx="16" cy="10" r="2" fill="#facc15"/>
+          </svg>
+          <h1 className="text-2xl font-bold tracking-tight">AETERIUM</h1>
+        </div>
+        <p className="text-xs text-slate-400 mt-1 font-mono uppercase tracking-widest pl-11">Command Center</p>
       </div>
-      <button className="bg-slate-900 text-white px-6 py-3 rounded-lg font-mono text-sm hover:bg-slate-800 transition-colors">INTEL SEARCH</button>
-    </div>
-    <div className="text-slate-500 font-mono text-sm border-t border-slate-100 pt-4">Conectando con motor de datos...</div>
-  </div>
-);
-
-const DropeaSync = () => (
-  <div className="bg-white p-8 rounded-xl border border-slate-200 shadow-sm max-w-2xl">
-    <h2 className="text-xl font-bold mb-4 font-sans text-slate-800">Sincronización de Órdenes (Dropea)</h2>
-    <p className="text-slate-500 mb-6 font-sans text-sm">Registrar venta manual verificada (Marketplace/WhatsApp).</p>
-    <div className="text-slate-500 font-mono text-sm border-t border-slate-100 pt-4">Formulario en construcción...</div>
-  </div>
-);
+      <nav className="flex-1 p-6 space-y-2">
+        {links.map(({ to, icon, label }) => {
+          const active = location.pathname === to;
+          return (
+            <Link key={to} to={to}
+              className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${
+                active ? 'bg-white/15 text-white border border-white/10' : 'text-slate-400 hover:bg-white/5 hover:text-white'
+              }`}>
+              {icon}{label}
+            </Link>
+          );
+        })}
+      </nav>
+      <div className="p-6 border-t border-slate-800">
+        <p className="text-xs text-slate-600 font-mono">v1.0.1 — Guerrilla Edition</p>
+      </div>
+    </aside>
+  );
+}
 
 export default function App() {
   return (
     <BrowserRouter>
-      <div className="flex h-screen bg-[#FAFAFA] font-sans text-[#111111]">
-        {/* Sidebar Ultra-Premium */}
-        <aside className="w-72 bg-slate-900 text-white flex flex-col shadow-2xl z-10">
-          <div className="p-8 border-b border-slate-800">
-            <h1 className="text-2xl font-bold tracking-tight font-sans">AETERIUM</h1>
-            <p className="text-xs text-slate-400 mt-2 font-mono uppercase tracking-widest">Command Center</p>
-          </div>
-          <nav className="flex-1 p-6 space-y-3">
-            <Link to="/" className="flex items-center gap-3 px-4 py-3 bg-white/10 rounded-lg text-sm font-medium transition-all hover:bg-white/20 border border-white/5">
-              <Zap size={18} className="text-yellow-400" />
-              Guerrilla Intel
-            </Link>
-            <Link to="/sync" className="flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-white/5 hover:text-white rounded-lg text-sm font-medium transition-all">
-              <Shield size={18} />
-              Dropea Sync
-            </Link>
-          </nav>
-        </aside>
-
-        {/* Main Content */}
+      <div className="flex h-screen bg-[#FAFAFA] font-sans text-[#111111] overflow-hidden">
+        <Sidebar />
         <main className="flex-1 overflow-y-auto">
-          <header className="bg-white border-b border-slate-200 px-10 py-6 sticky top-0 z-0">
-            <h2 className="text-2xl font-semibold text-slate-800 tracking-tight">Dashboard de Operaciones</h2>
+          <header className="bg-white border-b border-slate-200 px-10 py-5 sticky top-0 z-0 shadow-sm">
+            <h2 className="text-xl font-semibold text-slate-800 tracking-tight">Dashboard de Operaciones</h2>
           </header>
-          <div className="p-10 max-w-7xl mx-auto">
+          <div className="p-8 max-w-7xl mx-auto">
             <Routes>
               <Route path="/" element={<GuerrillaIntel />} />
               <Route path="/sync" element={<DropeaSync />} />
