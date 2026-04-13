@@ -1,4 +1,21 @@
+# Dependencies
 node_modules/
+node_modules_old*/
+frontend/node_modules/
+frontend/node_modules_old*/
+
+# Environment
+.env
+.env.local
+.env.production
+.env.development
+
+# Build outputs
+frontend/dist/
+dist/
+
+# Misc
 raw_market_data.json
 test.js
-node_modules/ 
+*.log
+.DS_Store
