@@ -1,160 +1,283 @@
 import React, { useEffect, useState } from 'react';
-import { Search, ExternalLink, FileText, Loader2, X } from 'lucide-react';
+import { Search, ExternalLink, FileText, Loader2, X, TrendingUp, Package, DollarSign, Sparkles } from 'lucide-react';
+
+const API_BASE = import.meta.env.VITE_API_URL || '';
+
+function MarginBadge({ margin }) {
+  const val = parseFloat(margin);
+  if (val >= 30) return <span className="metric-badge-green">+€{val.toFixed(2)}</span>;
+  if (val >= 15) return <span className="metric-badge-yellow">+€{val.toFixed(2)}</span>;
+  return <span className="metric-badge-red">+€{val.toFixed(2)}</span>;
+}
+
+function SkeletonRow() {
+  return (
+    <tr className="border-b border-phantom-border">
+      <td className="py-4 px-4"><div className="skeleton h-4 w-48" /></td>
+      <td className="py-4 px-4"><div className="skeleton h-4 w-12 ml-auto" /></td>
+      <td className="py-4 px-4"><div className="skeleton h-4 w-24 ml-auto" /></td>
+      <td className="py-4 px-4"><div className="skeleton h-5 w-16 ml-auto" /></td>
+      <td className="py-4 px-4"><div className="skeleton h-8 w-32 ml-auto" /></td>
+    </tr>
+  );
+}
 
 export default function GuerrillaIntel() {
-    const [products, setProducts] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [prompt, setPrompt] = useState("");
-    const [modal, setModal] = useState({ show: false, content: '', loading: false, title: '' });
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [prompt, setPrompt] = useState('');
+  const [modal, setModal] = useState({ show: false, content: '', loading: false, title: '' });
 
-    useEffect(() => {
-        fetch('/api/products')
-            .then(res => res.json())
-            .then(data => { setProducts(Array.isArray(data) ? data : []); setLoading(false); })
-            .catch(() => { setProducts([]); setLoading(false); });
-    }, []);
+  useEffect(() => {
+    fetch(`${API_BASE}/api/products`)
+      .then(res => res.json())
+      .then(data => { setProducts(Array.isArray(data) ? data : []); setLoading(false); })
+      .catch(() => { setProducts([]); setLoading(false); });
+  }, []);
 
-    const handleSearch = async (e) => {
-        e.preventDefault();
-        setLoading(true);
-        try {
-            const res = await fetch('/api/scan-dynamic', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ prompt })
-            });
-            const data = await res.json();
-            setProducts(Array.isArray(data) ? data : []);
-        } catch (err) {
-            console.error(err);
-        }
-        setLoading(false);
-    };
+  const handleSearch = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/scan-dynamic`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt })
+      });
+      const data = await res.json();
+      setProducts(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error(err);
+    }
+    setLoading(false);
+  };
 
-    const generateAI = async (p) => {
-        setModal({ show: true, content: '', loading: true, title: p.name });
-        try {
-            const res = await fetch('/api/generate-strategy', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(p)
-            });
-            const data = await res.json();
-            setModal(prev => ({ ...prev, content: data.strategy, loading: false }));
-        } catch(err) {
-            setModal(prev => ({ ...prev, content: 'Error generando PDF Intel.', loading: false }));
-        }
-    };
+  const generateAI = async (p) => {
+    setModal({ show: true, content: '', loading: true, title: p.name });
+    try {
+      const res = await fetch(`${API_BASE}/api/generate-strategy`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(p)
+      });
+      const data = await res.json();
+      setModal(prev => ({ ...prev, content: data.strategy, loading: false }));
+    } catch (err) {
+      setModal(prev => ({ ...prev, content: 'Error al conectar con el motor IA.', loading: false }));
+    }
+  };
 
-    return (
-        <section className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 max-w-7xl mx-auto">
-            <div className="mb-6">
-                <h3 className="text-lg font-semibold text-slate-800">Inteligencia de Mercado</h3>
-                <p className="text-sm text-slate-500">Top Productos extraídos bajo la Directiva de Guerrilla.</p>
+  const totalMargen = products.reduce((s, p) => s + (parseFloat(p.margin) || 0), 0);
+  const avgMargen = products.length > 0 ? totalMargen / products.length : 0;
+  const topProduct = products.length > 0
+    ? products.reduce((best, p) => parseFloat(p.margin) > parseFloat(best.margin) ? p : best, products[0])
+    : null;
+
+  return (
+    <div className="space-y-6 animate-fade-in">
+
+      {/* SEARCH BAR */}
+      <form onSubmit={handleSearch} className="flex gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-phantom-faint" size={16} />
+          <input
+            type="text"
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            placeholder="Busca productos: ej. 'freidoras aire alto margen', 'hogar verano'..."
+            className="phantom-input pl-10"
+          />
+        </div>
+        <button type="submit" disabled={loading} className="phantom-btn-primary whitespace-nowrap">
+          {loading
+            ? <><Loader2 size={15} className="animate-spin" /> Escaneando...</>
+            : <><Search size={15} /> Intel Search</>
+          }
+        </button>
+      </form>
+
+      {/* MINI STATS BAR — solo si hay productos */}
+      {products.length > 0 && (
+        <div className="grid grid-cols-3 gap-4">
+          <div className="flex items-center gap-3 phantom-card p-4">
+            <div className="w-8 h-8 rounded-lg bg-phantom-gold-dim flex items-center justify-center flex-shrink-0">
+              <Package size={15} className="text-phantom-gold" />
             </div>
-
-            <form onSubmit={handleSearch} className="mb-6 flex gap-3">
-                <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                    <input 
-                        type="text" 
-                        value={prompt}
-                        onChange={(e) => setPrompt(e.target.value)}
-                        placeholder="Busca productos con alto margen..." 
-                        className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all text-slate-800"
-                    />
-                </div>
-                <button type="submit" disabled={loading} className="px-6 py-2.5 bg-slate-900 text-white rounded-lg text-sm font-medium hover:bg-slate-800 disabled:opacity-50 transition-colors flex items-center gap-2 whitespace-nowrap">
-                    {loading ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
-                    Intel Search
-                </button>
-            </form>
-
-            <div className="overflow-x-auto rounded-lg border border-slate-200">
-                <table className="w-full text-left border-collapse min-w-[850px]">
-                    <thead>
-                        <tr className="bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                            <th className="py-3 px-4">Producto</th>
-                            <th className="py-3 px-4 text-right w-24">Stock</th>
-                            <th className="py-3 px-4 text-right w-36">Costo / PVP</th>
-                            <th className="py-3 px-4 text-right w-24 text-indigo-600">Margen</th>
-                            <th className="py-3 px-4 text-center w-[280px]">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 text-sm bg-white">
-                        {loading && products.length === 0 ? (
-                            <tr><td colSpan="5" className="py-8 text-center text-slate-500"><div className="flex items-center justify-center gap-2"><Loader2 size={16} className="animate-spin"/> Cargando Inteligencia Dinámica...</div></td></tr>
-                        ) : products.length === 0 ? (
-                            <tr><td colSpan="5" className="py-8 text-center text-slate-500">Sin datos.</td></tr>
-                        ) : (
-                            products.map(p => (
-                                <tr key={p.id} className="hover:bg-slate-50 transition-colors">
-                                    <td className="py-4 px-4">
-                                        <div className="text-xs font-medium text-slate-400 mb-0.5 uppercase tracking-wide">{p.category}</div>
-                                        <div className="font-semibold text-slate-800 leading-tight">{p.name} <span className="font-mono text-[10px] bg-slate-100 border border-slate-200 px-1 py-0.5 rounded text-slate-500 ml-1.5 font-medium">ID:{p.id}</span></div>
-                                    </td>
-                                    <td className="py-4 px-4 text-right align-top pt-5">
-                                        <span className="font-mono text-xs font-semibold bg-emerald-50 text-emerald-700 px-2 py-1 rounded border border-emerald-100">{p.stock}</span>
-                                    </td>
-                                    <td className="py-4 px-4 text-right align-top pt-5 font-mono text-[13px]">
-                                        <span className="text-slate-500">€{parseFloat(p.cost).toFixed(2)}</span><br/>
-                                        <span className="font-semibold text-slate-800">€{parseFloat(p.pvp).toFixed(2)}</span>
-                                    </td>
-                                    <td className="py-4 px-4 text-right align-top pt-5 font-mono font-bold text-indigo-600 text-[13px]">
-                                        €{parseFloat(p.margin).toFixed(2)}
-                                    </td>
-                                    <td className="py-4 px-4 align-top pt-4">
-                                        <div className="flex items-center justify-center gap-2">
-                                            <a 
-                                                href={`https://app.dropea.com/products/${p.id}`} 
-                                                target="_blank" 
-                                                rel="noopener noreferrer"
-                                                className="flex items-center gap-1.5 border border-slate-800 hover:bg-slate-800 hover:text-white text-slate-800 text-xs font-mono py-1 px-3 rounded transition-colors"
-                                            >
-                                                <ExternalLink size={14} /> Ver Dropea
-                                            </a>
-                                            <button 
-                                                onClick={() => generateAI(p)}
-                                                className="flex items-center gap-1.5 border border-slate-800 hover:bg-slate-800 hover:text-white text-slate-800 text-xs font-mono py-1 px-3 rounded transition-colors"
-                                            >
-                                                <FileText size={14} /> Generar PDF Intel
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))
-                        )}
-                    </tbody>
-                </table>
+            <div>
+              <p className="phantom-label">Resultados</p>
+              <p className="text-lg font-bold font-mono text-phantom-text">{products.length}</p>
             </div>
+          </div>
+          <div className="flex items-center gap-3 phantom-card p-4">
+            <div className="w-8 h-8 rounded-lg bg-phantom-green-dim flex items-center justify-center flex-shrink-0">
+              <TrendingUp size={15} className="text-phantom-green" />
+            </div>
+            <div>
+              <p className="phantom-label">Margen Medio</p>
+              <p className="text-lg font-bold font-mono text-phantom-green">€{avgMargen.toFixed(2)}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 phantom-card p-4">
+            <div className="w-8 h-8 rounded-lg bg-phantom-gold-dim flex items-center justify-center flex-shrink-0">
+              <DollarSign size={15} className="text-phantom-gold" />
+            </div>
+            <div>
+              <p className="phantom-label">Top Margen</p>
+              <p className="text-lg font-bold font-mono text-phantom-gold">€{topProduct ? parseFloat(topProduct.margin).toFixed(2) : '0.00'}</p>
+            </div>
+          </div>
+        </div>
+      )}
 
-            {modal.show && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl flex flex-col max-h-[90vh] border border-slate-200">
-                        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-[#FAFAFA] rounded-t-xl">
-                            <div>
-                                <h3 className="text-sm font-bold text-slate-800 uppercase tracking-widest font-mono">Estrategia AI (Gemini)</h3>
-                                <p className="text-sm text-slate-600 mt-1">{modal.title}</p>
-                            </div>
-                            <button onClick={() => setModal({ show: false, content: '', loading: false, title: '' })} className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-200 rounded-lg transition-colors">
-                                <X size={20} />
-                            </button>
-                        </div>
-                        <div className="p-6 overflow-y-auto flex-1 bg-white">
-                            {modal.loading ? (
-                                <div className="flex flex-col items-center justify-center py-20 space-y-4">
-                                    <Loader2 size={32} className="animate-spin text-indigo-600" />
-                                    <p className="text-sm font-medium text-slate-500 font-mono text-center">Analizando vectores de guerrilla...<br/>Sintetizando prompts e hiper-parámetros.</p>
-                                </div>
-                            ) : (
-                                <pre className="whitespace-pre-wrap font-mono text-[13px] text-slate-800 bg-[#FAFAFA] p-5 border border-slate-200 rounded-lg leading-relaxed shadow-inner">
-                                    {modal.content}
-                                </pre>
-                            )}
-                        </div>
+      {/* TABLA PRINCIPAL */}
+      <div className="phantom-card overflow-hidden">
+        <div className="px-6 py-4 border-b border-phantom-border flex items-center justify-between">
+          <h3 className="font-display text-sm font-semibold text-phantom-text">Inteligencia de Mercado</h3>
+          <span className="text-xs font-mono text-phantom-faint">Directiva Guerrilla • Dropea API</span>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-left min-w-[780px]">
+            <thead>
+              <tr className="border-b border-phantom-border">
+                {['Producto', 'Stock', 'Costo / PVP', 'Margen', 'Acciones'].map((h, i) => (
+                  <th key={h} className={`py-3 px-4 phantom-label ${
+                    i > 0 && i < 4 ? 'text-right' : i === 4 ? 'text-center' : ''
+                  }`}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-phantom-border">
+              {loading ? (
+                Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={i} />)
+              ) : products.length === 0 ? (
+                <tr>
+                  <td colSpan="5" className="py-16 text-center">
+                    <div className="flex flex-col items-center gap-3">
+                      <Search size={32} className="text-phantom-faint" />
+                      <p className="text-sm text-phantom-muted font-mono">Sin resultados. Lanza una búsqueda Intel.</p>
                     </div>
+                  </td>
+                </tr>
+              ) : (
+                products.map((p, i) => (
+                  <tr key={i} className="hover:bg-phantom-gold-glow transition-colors duration-150 group">
+                    <td className="py-3.5 px-4">
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-sm font-medium text-phantom-text group-hover:text-phantom-gold transition-colors truncate max-w-[260px]">
+                          {p.name}
+                        </span>
+                        {p.id && <span className="text-xs font-mono text-phantom-faint">ID: {p.id}</span>}
+                      </div>
+                    </td>
+                    <td className="py-3.5 px-4 text-right">
+                      <span className={`font-mono text-sm font-medium ${
+                        parseInt(p.stock) > 100 ? 'text-phantom-green' :
+                        parseInt(p.stock) > 20 ? 'text-phantom-yellow' : 'text-phantom-red'
+                      }`}>{p.stock || '—'}</span>
+                    </td>
+                    <td className="py-3.5 px-4 text-right">
+                      <div className="flex flex-col gap-0.5 items-end">
+                        <span className="text-xs font-mono text-phantom-muted">{p.cost ? `€${parseFloat(p.cost).toFixed(2)}` : '—'}</span>
+                        <span className="text-sm font-mono font-medium text-phantom-text">{p.pvp ? `€${parseFloat(p.pvp).toFixed(2)}` : '—'}</span>
+                      </div>
+                    </td>
+                    <td className="py-3.5 px-4 text-right">
+                      <MarginBadge margin={p.margin || 0} />
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <div className="flex items-center justify-center gap-2">
+                        {p.url && (
+                          <a href={p.url} target="_blank" rel="noopener noreferrer"
+                            className="phantom-btn-ghost px-2.5 py-1.5 text-xs"
+                            title="Ver en Dropea">
+                            <ExternalLink size={13} />
+                          </a>
+                        )}
+                        <button
+                          onClick={() => generateAI(p)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-phantom-gold-dim border border-phantom-border-gold text-phantom-gold rounded-lg text-xs font-semibold hover:bg-phantom-gold hover:text-phantom-bg transition-all duration-200"
+                          title="Generar estrategia IA"
+                        >
+                          <Sparkles size={12} />
+                          Estrategia IA
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* MODAL ESTRATEGIA IA */}
+      {modal.show && (
+        <div className="fixed inset-0 z-50 flex">
+          <div
+            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+            onClick={() => setModal({ show: false, content: '', loading: false, title: '' })}
+          />
+          <div className="relative ml-auto w-full max-w-xl h-full bg-phantom-surface border-l border-phantom-border shadow-phantom-lg animate-slide-in flex flex-col">
+            {/* Modal Header */}
+            <div className="p-6 border-b border-phantom-border flex items-start justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <Sparkles size={16} className="text-phantom-gold" />
+                  <span className="phantom-label">Estrategia Guerrilla IA</span>
                 </div>
+                <h3 className="font-display text-base font-bold text-phantom-text leading-snug line-clamp-2">{modal.title}</h3>
+              </div>
+              <button
+                onClick={() => setModal({ show: false, content: '', loading: false, title: '' })}
+                className="phantom-btn-ghost p-2 flex-shrink-0"
+                aria-label="Cerrar modal"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="flex-1 overflow-y-auto p-6">
+              {modal.loading ? (
+                <div className="flex flex-col items-center justify-center h-48 gap-4">
+                  <Loader2 size={32} className="text-phantom-gold animate-spin" />
+                  <p className="text-sm font-mono text-phantom-muted">Generando inteligencia táctica...</p>
+                  <div className="flex gap-1">
+                    {[0,1,2].map(i => (
+                      <div key={i} className="w-2 h-2 rounded-full bg-phantom-gold opacity-60"
+                        style={{ animation: `pulseGold 1.5s ease-in-out infinite`, animationDelay: `${i * 0.2}s` }}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="prose prose-invert prose-sm max-w-none">
+                  <pre className="whitespace-pre-wrap font-mono text-sm text-phantom-text leading-relaxed bg-phantom-bg rounded-lg p-4 border border-phantom-border">
+                    {modal.content}
+                  </pre>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            {!modal.loading && modal.content && (
+              <div className="p-6 border-t border-phantom-border">
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(modal.content);
+                  }}
+                  className="phantom-btn-primary w-full justify-center"
+                >
+                  <FileText size={15} />
+                  Copiar Estrategia
+                </button>
+              </div>
             )}
-        </section>
-    );
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
