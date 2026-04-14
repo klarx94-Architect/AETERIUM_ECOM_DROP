@@ -4,5 +4,50 @@
 @theme {
   --font-sans: "Inter", sans-serif;
   --font-mono: "JetBrains Mono", monospace;
+  
+  --color-aeterium-black: #080808;
+  --color-aeterium-card: #121212;
+  --color-aeterium-gold: #facc15;
+  --color-aeterium-border: #1f1f1f;
+  
+  --shadow-gold: 0 0 15px rgba(250, 204, 21, 0.15);
 }
-body { background-color: #FAFAFA; color: #111111; font-family: "Inter", sans-serif; }
+
+@layer base {
+  body {
+    @apply bg-aeterium-black text-slate-200 antialiased font-sans;
+    margin: 0;
+    min-height: 100vh;
+  }
+}
+
+@layer components {
+  .guerrilla-card {
+    @apply bg-aeterium-card border border-aeterium-border rounded-xl p-6 transition-all hover:border-aeterium-gold/30;
+    box-shadow: 0 10px 30px -10px rgba(0,0,0,0.5);
+  }
+  
+  .intel-gradient {
+    background: linear-gradient(135deg, #facc15 0%, #ca8a04 100%);
+  }
+
+  .glass-sidebar {
+    background: rgba(8, 8, 8, 0.85);
+    backdrop-filter: blur(12px);
+  }
+}
+
+/* Custom scrollbar for tactical feel */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #080808;
+}
+::-webkit-scrollbar-thumb {
+  background: #222;
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #333;
+}

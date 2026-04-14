@@ -1,5 +1,23 @@
 import React, { useEffect, useState } from 'react';
-import { Search, ExternalLink, FileText, Loader2, X } from 'lucide-react';
+import { Search, ExternalLink, FileText, Loader2, X, TrendingUp, Package, ShoppingCart, DollarSign } from 'lucide-react';
+
+function StatCard({ label, value, subtext, icon, trend }) {
+    return (
+        <div className="guerrilla-card flex flex-col justify-between">
+            <div className="flex justify-between items-start mb-4">
+                <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">{label}</span>
+                <span className="p-1.5 bg-white/5 rounded-lg border border-white/5 text-aeterium-gold">{icon}</span>
+            </div>
+            <div>
+                <div className="text-2xl font-black text-white mb-1">{value}</div>
+                <div className={`text-[10px] font-bold flex items-center gap-1 ${trend > 0 ? 'text-emerald-500' : 'text-slate-500'}`}>
+                    {trend > 0 && <TrendingUp size={10} />}
+                    {subtext}
+                </div>
+            </div>
+        </div>
+    );
+}
 
 export default function GuerrillaIntel() {
     const [products, setProducts] = useState([]);
@@ -42,119 +60,144 @@ export default function GuerrillaIntel() {
             const data = await res.json();
             setModal(prev => ({ ...prev, content: data.strategy, loading: false }));
         } catch(err) {
-            setModal(prev => ({ ...prev, content: 'Error generando PDF Intel.', loading: false }));
+            setModal(prev => ({ ...prev, content: 'Error generando Estrategia de IA.', loading: false }));
         }
     };
 
     return (
-        <section className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 max-w-7xl mx-auto">
-            <div className="mb-6">
-                <h3 className="text-lg font-semibold text-slate-800">Inteligencia de Mercado</h3>
-                <p className="text-sm text-slate-500">Top Productos extraídos bajo la Directiva de Guerrilla.</p>
+        <div className="space-y-8 animate-in fade-in duration-700">
+            {/* Summary Stats Region */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <StatCard label="Margen Promedio" value="€34.21" subtext="+12.4%" trend={1} icon={<TrendingUp size={16}/>} />
+                <StatCard label="Productos Activos" value="47" subtext="+5 hoy" trend={1} icon={<Package size={16}/>} />
+                <StatCard label="Órdenes Pendientes" value="3" subtext="COD Mode" trend={0} icon={<ShoppingCart size={16}/>} />
+                <StatCard label="Revenue Est. Hoy" value="€171" subtext="+5 ventas" trend={1} icon={<DollarSign size={16}/>} />
             </div>
 
-            <form onSubmit={handleSearch} className="mb-6 flex gap-3">
-                <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                    <input 
-                        type="text" 
-                        value={prompt}
-                        onChange={(e) => setPrompt(e.target.value)}
-                        placeholder="Busca productos con alto margen..." 
-                        className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all text-slate-800"
-                    />
-                </div>
-                <button type="submit" disabled={loading} className="px-6 py-2.5 bg-slate-900 text-white rounded-lg text-sm font-medium hover:bg-slate-800 disabled:opacity-50 transition-colors flex items-center gap-2 whitespace-nowrap">
-                    {loading ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
-                    Intel Search
-                </button>
-            </form>
+            {/* Main Content Area */}
+            <section className="guerrilla-card">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8">
+                    <div>
+                        <h3 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
+                           Inteligencia de Mercado 
+                           <span className="intel-gradient h-1.5 w-1.5 rounded-full"></span>
+                        </h3>
+                        <p className="text-xs text-slate-500 mt-1 uppercase tracking-wider font-mono">Motor de inteligencia de mercado • Dropea API</p>
+                    </div>
 
-            <div className="overflow-x-auto rounded-lg border border-slate-200">
-                <table className="w-full text-left border-collapse min-w-[850px]">
-                    <thead>
-                        <tr className="bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                            <th className="py-3 px-4">Producto</th>
-                            <th className="py-3 px-4 text-right w-24">Stock</th>
-                            <th className="py-3 px-4 text-right w-36">Costo / PVP</th>
-                            <th className="py-3 px-4 text-right w-24 text-indigo-600">Margen</th>
-                            <th className="py-3 px-4 text-center w-[280px]">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 text-sm bg-white">
-                        {loading && products.length === 0 ? (
-                            <tr><td colSpan="5" className="py-8 text-center text-slate-500"><div className="flex items-center justify-center gap-2"><Loader2 size={16} className="animate-spin"/> Cargando Inteligencia Dinámica...</div></td></tr>
-                        ) : products.length === 0 ? (
-                            <tr><td colSpan="5" className="py-8 text-center text-slate-500">Sin datos.</td></tr>
-                        ) : (
-                            products.map(p => (
-                                <tr key={p.id} className="hover:bg-slate-50 transition-colors">
-                                    <td className="py-4 px-4">
-                                        <div className="text-xs font-medium text-slate-400 mb-0.5 uppercase tracking-wide">{p.category}</div>
-                                        <div className="font-semibold text-slate-800 leading-tight">{p.name} <span className="font-mono text-[10px] bg-slate-100 border border-slate-200 px-1 py-0.5 rounded text-slate-500 ml-1.5 font-medium">ID:{p.id}</span></div>
-                                    </td>
-                                    <td className="py-4 px-4 text-right align-top pt-5">
-                                        <span className="font-mono text-xs font-semibold bg-emerald-50 text-emerald-700 px-2 py-1 rounded border border-emerald-100">{p.stock}</span>
-                                    </td>
-                                    <td className="py-4 px-4 text-right align-top pt-5 font-mono text-[13px]">
-                                        <span className="text-slate-500">€{parseFloat(p.cost).toFixed(2)}</span><br/>
-                                        <span className="font-semibold text-slate-800">€{parseFloat(p.pvp).toFixed(2)}</span>
-                                    </td>
-                                    <td className="py-4 px-4 text-right align-top pt-5 font-mono font-bold text-indigo-600 text-[13px]">
-                                        €{parseFloat(p.margin).toFixed(2)}
-                                    </td>
-                                    <td className="py-4 px-4 align-top pt-4">
-                                        <div className="flex items-center justify-center gap-2">
-                                            <a 
-                                                href={`https://app.dropea.com/products/${p.id}`} 
-                                                target="_blank" 
-                                                rel="noopener noreferrer"
-                                                className="flex items-center gap-1.5 border border-slate-800 hover:bg-slate-800 hover:text-white text-slate-800 text-xs font-mono py-1 px-3 rounded transition-colors"
-                                            >
-                                                <ExternalLink size={14} /> Ver Dropea
-                                            </a>
-                                            <button 
-                                                onClick={() => generateAI(p)}
-                                                className="flex items-center gap-1.5 border border-slate-800 hover:bg-slate-800 hover:text-white text-slate-800 text-xs font-mono py-1 px-3 rounded transition-colors"
-                                            >
-                                                <FileText size={14} /> Generar PDF Intel
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))
-                        )}
-                    </tbody>
-                </table>
-            </div>
-
-            {modal.show && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl flex flex-col max-h-[90vh] border border-slate-200">
-                        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-[#FAFAFA] rounded-t-xl">
-                            <div>
-                                <h3 className="text-sm font-bold text-slate-800 uppercase tracking-widest font-mono">Estrategia AI (Gemini)</h3>
-                                <p className="text-sm text-slate-600 mt-1">{modal.title}</p>
-                            </div>
-                            <button onClick={() => setModal({ show: false, content: '', loading: false, title: '' })} className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-200 rounded-lg transition-colors">
-                                <X size={20} />
-                            </button>
+                    <form onSubmit={handleSearch} className="flex gap-2 w-full md:w-auto">
+                        <div className="relative flex-1 md:w-80">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-600" size={16} />
+                            <input 
+                                type="text" 
+                                value={prompt}
+                                onChange={(e) => setPrompt(e.target.value)}
+                                placeholder="Escribe tu prompt de búsqueda..." 
+                                className="w-full pl-10 pr-4 py-2 bg-white/5 border border-white/10 rounded-lg text-sm focus:ring-1 focus:ring-aeterium-gold/50 outline-none transition-all placeholder:text-slate-700 text-white font-medium"
+                            />
                         </div>
-                        <div className="p-6 overflow-y-auto flex-1 bg-white">
-                            {modal.loading ? (
-                                <div className="flex flex-col items-center justify-center py-20 space-y-4">
-                                    <Loader2 size={32} className="animate-spin text-indigo-600" />
-                                    <p className="text-sm font-medium text-slate-500 font-mono text-center">Analizando vectores de guerrilla...<br/>Sintetizando prompts e hiper-parámetros.</p>
-                                </div>
+                        <button type="submit" disabled={loading} className="intel-gradient px-6 py-2 rounded-lg text-aeterium-black text-xs font-black uppercase tracking-wider flex items-center gap-2 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-gold">
+                            {loading ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
+                            Intel Search
+                        </button>
+                    </form>
+                </div>
+
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left border-separate border-spacing-y-2 min-w-[900px]">
+                        <thead>
+                            <tr className="text-[10px] uppercase font-mono tracking-[0.2em] text-slate-600">
+                                <th className="py-2 px-4">Producto</th>
+                                <th className="py-2 px-4 text-center">Stock</th>
+                                <th className="py-2 px-4 text-center">Costo / PVP</th>
+                                <th className="py-2 px-4 text-center text-aeterium-gold">Margen</th>
+                                <th className="py-2 px-4 text-right">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody className="text-sm">
+                            {loading && products.length === 0 ? (
+                                <tr><td colSpan="5" className="py-20 text-center"><Loader2 size={24} className="animate-spin text-aeterium-gold mx-auto mb-4"/> <span className="text-xs font-mono text-slate-500 uppercase">Sincronizando Nodos de Inteligencia...</span></td></tr>
+                            ) : products.length === 0 ? (
+                                <tr><td colSpan="5" className="py-20 text-center text-slate-500 font-mono text-xs uppercase tracking-widest">Sin resultados. Lanza una búsqueda Intel.</td></tr>
                             ) : (
-                                <pre className="whitespace-pre-wrap font-mono text-[13px] text-slate-800 bg-[#FAFAFA] p-5 border border-slate-200 rounded-lg leading-relaxed shadow-inner">
-                                    {modal.content}
-                                </pre>
+                                products.map(p => (
+                                    <tr key={p.id} className="group">
+                                        <td className="py-4 px-4 bg-white/[0.02] rounded-l-xl border-y border-l border-white/5 group-hover:bg-white/[0.04] transition-colors">
+                                            <div className="text-[10px] font-mono text-aeterium-gold mb-1 uppercase tracking-widest">{p.category}</div>
+                                            <div className="font-bold text-white text-base leading-tight">{p.name}</div>
+                                        </td>
+                                        <td className="py-4 px-4 bg-white/[0.02] border-y border-white/5 text-center group-hover:bg-white/[0.04] transition-colors">
+                                            <span className="font-mono text-sm font-bold text-emerald-500 bg-emerald-500/5 px-3 py-1 rounded-full border border-emerald-500/10">{p.stock}</span>
+                                        </td>
+                                        <td className="py-4 px-4 bg-white/[0.02] border-y border-white/5 text-center font-mono text-[13px] group-hover:bg-white/[0.04] transition-colors">
+                                            <span className="text-slate-500">€{parseFloat(p.cost).toFixed(2)}</span>
+                                            <span className="mx-2 text-slate-800">/</span>
+                                            <span className="font-bold text-white">€{parseFloat(p.pvp).toFixed(2)}</span>
+                                        </td>
+                                        <td className="py-4 px-4 bg-white/[0.02] border-y border-white/5 text-center font-mono font-black text-aeterium-gold text-lg group-hover:bg-white/[0.04] transition-colors">
+                                            €{parseFloat(p.margin).toFixed(2)}
+                                        </td>
+                                        <td className="py-4 px-4 bg-white/[0.02] rounded-r-xl border-y border-r border-white/5 group-hover:bg-white/[0.04] transition-colors text-right">
+                                            <div className="flex items-center justify-end gap-2">
+                                                <a 
+                                                    href={`https://app.dropea.com/products/${p.id}`} 
+                                                    target="_blank" 
+                                                    rel="noopener noreferrer"
+                                                    className="p-2 border border-white/10 hover:border-aeterium-gold/50 hover:bg-aeterium-gold/10 text-slate-400 hover:text-aeterium-gold rounded-lg transition-all"
+                                                    title="Ver en Dropea"
+                                                >
+                                                    <ExternalLink size={16} />
+                                                </a>
+                                                <button 
+                                                    onClick={() => generateAI(p)}
+                                                    className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 hover:border-aeterium-gold/50 text-white text-[10px] font-black uppercase tracking-widest rounded-lg transition-all"
+                                                >
+                                                    <FileText size={14} className="text-aeterium-gold" /> Estrategia IA
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))
                             )}
+                        </tbody>
+                    </table>
+                </div>
+
+                {modal.show && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-aeterium-black/80 backdrop-blur-md animate-in fade-in duration-300">
+                        <div className="guerrilla-card w-full max-w-4xl flex flex-col max-h-[85vh] shadow-[0_40px_100px_rgba(0,0,0,0.8)]">
+                            <div className="px-6 py-4 border-b border-white/5 flex items-center justify-between mb-2">
+                                <div>
+                                    <h3 className="text-sm font-black text-aeterium-gold uppercase tracking-[0.3em] font-mono">IA Tactical Analysis</h3>
+                                    <p className="text-xs text-slate-500 mt-1 uppercase font-bold">{modal.title}</p>
+                                </div>
+                                <button onClick={() => setModal({ show: false, content: '', loading: false, title: '' })} className="p-2 text-slate-600 hover:text-white hover:bg-white/5 rounded-lg transition-colors">
+                                    <X size={20} />
+                                </button>
+                            </div>
+                            <div className="p-6 overflow-y-auto flex-1 custom-scrollbar">
+                                {modal.loading ? (
+                                    <div className="flex flex-col items-center justify-center py-20 space-y-6">
+                                        <div className="relative">
+                                           <Loader2 size={48} className="animate-spin text-aeterium-gold" />
+                                           <div className="absolute inset-0 blur-2xl bg-aeterium-gold/20 animate-pulse"></div>
+                                        </div>
+                                        <p className="text-[10px] font-black tracking-widest text-slate-500 font-mono text-center uppercase">Analizando vectores de guerrilla comercial...<br/>Sintetizando informe estratégico.</p>
+                                    </div>
+                                ) : (
+                                    <div className="prose prose-invert max-w-none font-sans text-slate-300 text-sm leading-relaxed">
+                                        {modal.content.split('\n').map((line, i) => (
+                                            <p key={i} className={line.startsWith('#') ? 'text-aeterium-gold font-bold text-lg border-b border-white/5 pb-2 mt-6 mb-4' : 'mb-3'}>
+                                                {line}
+                                            </p>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
-        </section>
+                )}
+            </section>
+        </div>
     );
 }
