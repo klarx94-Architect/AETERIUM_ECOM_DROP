@@ -1,5 +1,11 @@
 import { dropeaQuery } from '../dropea_connector.js';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_ANON_KEY
+);
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 const modelFilter = genAI.getGenerativeModel({ 
@@ -59,7 +65,17 @@ export default async function handler(req, res) {
         }
 
         items.sort((a, b) => b.margin - a.margin);
-        res.status(200).json(items.slice(0, 50)); 
+        const finalResults = items.slice(0, 50);
+
+        // Registro silencioso en Supabase para historial de búsqueda (opcional)
+        if (supabase && process.env.SUPABASE_URL && prompt) {
+            await supabase.from('scans').insert([{
+                product_name: `Búsqueda: ${prompt}`,
+                analysis: `Filtros Aplicados: Stock > ${filters.minStock}, Margen > ${filters.minMargin}, Keyword: ${filters.keyword}. Encontrados: ${finalResults.length}`,
+            }]);
+        }
+
+        res.status(200).json(finalResults); 
 
     } catch (e) {
         console.error("[ERROR SCANNER] ", e.message);

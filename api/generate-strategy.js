@@ -1,4 +1,10 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_ANON_KEY
+);
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 const modelText = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
@@ -29,7 +35,17 @@ Escribe 3 prompts fotorrealistas en INGLÉS para generar imágenes lifestyle. Ej
         `;
 
         const result = await modelText.generateContent(prompt);
-        res.status(200).json({ strategy: result.response.text() });
+        const strategyText = result.response.text();
+
+        // Persistencia en Supabase
+        if (supabase && process.env.SUPABASE_URL) {
+            await supabase.from('scans').insert([{
+                product_name: name,
+                analysis: strategyText
+            }]);
+        }
+
+        res.status(200).json({ strategy: strategyText });
     } catch(e) {
         console.error("[ERROR STRATEGY]", e.message);
         res.status(500).json({ error: "Fallo generación IA: " + e.message });

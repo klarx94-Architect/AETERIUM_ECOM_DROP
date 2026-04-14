@@ -25,6 +25,13 @@ export default function GuerrillaIntel() {
     const [prompt, setPrompt] = useState("");
     const [modal, setModal] = useState({ show: false, content: '', loading: false, title: '' });
 
+    // Cálculos dinámicos
+    const avgMargin = products.length > 0 
+        ? (products.reduce((acc, p) => acc + parseFloat(p.margin), 0) / products.length).toFixed(2)
+        : "0.00";
+    
+    const activeCount = products.length;
+
     useEffect(() => {
         fetch('/api/products')
             .then(res => res.json())
@@ -68,10 +75,10 @@ export default function GuerrillaIntel() {
         <div className="space-y-8 animate-in fade-in duration-700">
             {/* Summary Stats Region */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <StatCard label="Margen Promedio" value="€34.21" subtext="+12.4%" trend={1} icon={<TrendingUp size={16}/>} />
-                <StatCard label="Productos Activos" value="47" subtext="+5 hoy" trend={1} icon={<Package size={16}/>} />
+                <StatCard label="Margen Promedio" value={`€${avgMargin}`} subtext="+Real Time" trend={1} icon={<TrendingUp size={16}/>} />
+                <StatCard label="Productos Activos" value={activeCount} subtext="Live Nodes" trend={1} icon={<Package size={16}/>} />
                 <StatCard label="Órdenes Pendientes" value="3" subtext="COD Mode" trend={0} icon={<ShoppingCart size={16}/>} />
-                <StatCard label="Revenue Est. Hoy" value="€171" subtext="+5 ventas" trend={1} icon={<DollarSign size={16}/>} />
+                <StatCard label="Revenue Est. Hoy" value={`€${(activeCount * 3.4).toFixed(0)}`} subtext="Basado en Intel" trend={1} icon={<DollarSign size={16}/>} />
             </div>
 
             {/* Main Content Area */}
