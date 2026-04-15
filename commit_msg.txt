@@ -1,7 +1,7 @@
-feat: implement AI strategy for tops with Gemini 1.5
+fix: restore war room functionality and activate AI commander
 
-- Created api/strategy-for-top.js backend endpoint
-- Integrated Gemini 1.5 for tactical strategy generation
-- Updated TopWarRoom.jsx with interactive AI Commander panel
-- Added loading, error, and content states for AI generation
-- Added copy-to-clipboard functionality for strategies
+- Adhering to the new incremental change policy.
+- Restored missing imports (ShieldAlert) and internal state in TopWarRoom.jsx.
+- Re-instituted data fetching logic from Supabase that was lost.
+- Connected the AI Commander panel to the /api/strategy-for-top service.
+- Ensured all icons and hooks are correctly imported to avoid build failures.

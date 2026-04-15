@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { createClient } from '@supabase/supabase-js';
-import { Shield, Loader2, ArrowLeft, Terminal, Server, Zap } from 'lucide-react';
+import { Shield, Loader2, ArrowLeft, Terminal, Server, Zap, ShieldAlert } from 'lucide-react';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
@@ -11,11 +11,74 @@ if (supabaseUrl && supabaseKey) {
   supabase = createClient(supabaseUrl, supabaseKey);
 }
 
+export default function TopWarRoom() {
+    const { id } = useParams();
+    const [top, setTop] = useState(null);
+    const [products, setProducts] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+
     const [aiState, setAiState] = useState({
         loading: false,
         error: '',
         content: ''
     });
+
+    useEffect(() => {
+        if (!supabase) {
+            setError("No se detectó configuración de Supabase (VITE_SUPABASE_URL / ANON_KEY en el frontend).");
+            setLoading(false);
+            return;
+        }
+
+        async function fetchWarRoom() {
+            try {
+                // 1. Obtener Top
+                const { data: topData, error: topError } = await supabase
+                    .from('tops')
+                    .select('*')
+                    .eq('id', id)
+                    .maybeSingle();
+                
+                if (topError) throw new Error("No se pudo cargar el Top (posible 404 o problema interno).");
+                setTop(topData);
+
+                // 2. Obtener productos de este top
+                const { data: prodData, error: prodError } = await supabase
+                    .from('top_products')
+                    .select('*')
+                    .eq('top_id', id)
+                    .order('margin', { ascending: false });
+
+                if (prodError) throw new Error("No se pudieron cargar los nodos estratégicos de este top.");
+                setProducts(prodData || []);
+
+            } catch (err) {
+                setError(err.message);
+            } finally {
+                setLoading(false);
+            }
+        }
+        
+        fetchWarRoom();
+    }, [id]);
+
+    const calculatePotentialMargin = () => {
+        return products.reduce((acc, p) => {
+            const margin = parseFloat(p.margin) || 0;
+            const stock = parseInt(p.stock) || 0;
+            return acc + (margin * stock);
+        }, 0);
+    };
+
+    const formatDate = (dateString) => {
+        if (!dateString) return "—";
+        return new Date(dateString).toLocaleDateString('es-ES', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric'
+        });
+    };
 
     const handleGenerateTopStrategy = async () => {
         setAiState({ loading: true, error: '', content: '' });
