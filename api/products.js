@@ -3,10 +3,10 @@ import { dropeaQuery } from '../dropea_connector.js';
 
 let supabase = null;
 try {
-  if (process.env.SUPABASE_URL && process.env.SUPABASE_ANON_KEY) {
+  if (process.env.VITE_SUPABASE_URL && process.env.VITE_SUPABASE_ANON_KEY) {
     supabase = createClient(
-      process.env.SUPABASE_URL,
-      process.env.SUPABASE_ANON_KEY
+      process.env.VITE_SUPABASE_URL,
+      process.env.VITE_SUPABASE_ANON_KEY
     );
   }
 } catch (err) {
