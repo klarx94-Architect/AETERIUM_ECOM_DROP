@@ -6,15 +6,15 @@ const supabase = createClient(
   process.env.SUPABASE_ANON_KEY
 );
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "", { apiVersion: "v1" });
-const modelText = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
-
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
         return res.status(405).json({ success: false, error: "Method Not Allowed" });
     }
 
     try {
+        const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "", { apiVersion: "v1" });
+        const modelText = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
+
         const { name, category, cost, pvp, margin } = req.body;
         console.log(`[STRATEGY AI] Generando reporte para: ${name}`);
 

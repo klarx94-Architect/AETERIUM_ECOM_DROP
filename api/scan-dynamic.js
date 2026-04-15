@@ -7,12 +7,6 @@ const supabase = createClient(
   process.env.SUPABASE_ANON_KEY
 );
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "", { apiVersion: "v1" });
-const modelFilter = genAI.getGenerativeModel({ 
-    model: "gemini-1.5-pro", 
-    generationConfig: { responseMimeType: "application/json" } 
-});
-
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
         return res.status(405).json({ success: false, error: "Method Not Allowed" });
@@ -22,10 +16,16 @@ export default async function handler(req, res) {
         const { prompt } = req.body;
         console.log(`[DYNAMIC INTEL] Analizando prompt: "${prompt}"`);
         
-        // 1. Configuración de IA con Gemini 3 Flash
+        // 1. Configuración de IA con Gemini 1.5 Pro (In-handler initialization to prevent bootstrap crash)
         if (!process.env.GEMINI_API_KEY) {
             throw new Error("GEMINI_API_KEY no configurada en el servidor.");
         }
+
+        const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY, { apiVersion: "v1" });
+        const modelFilter = genAI.getGenerativeModel({ 
+            model: "gemini-1.5-pro", 
+            generationConfig: { responseMimeType: "application/json" } 
+        });
 
         let filters = { minStock: 0, minMargin: 0, keyword: "" };
 

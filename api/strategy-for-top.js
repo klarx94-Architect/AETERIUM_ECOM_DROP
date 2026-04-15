@@ -14,22 +14,22 @@ try {
   console.error("Error top-level init Supabase en /api/strategy-for-top:", err);
 }
 
-// Configuración de Gemini con validación estable en v1
-const apiKey = process.env.GEMINI_API_KEY;
-const genAI = apiKey ? new GoogleGenerativeAI(apiKey, { apiVersion: "v1" }) : null;
-// Usamos gemini-1.5-pro para máxima estabilidad con el SDK legacy
-const modelText = genAI ? genAI.getGenerativeModel({ model: "gemini-1.5-pro" }) : null;
-
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
-        return res.status(405).json({ success: false, error: "Method Not Allowed" });
+        return res.status(405).json({ success: false, error: 'Método no permitido' });
     }
 
     try {
         const { top_id } = req.body;
         if (!top_id) {
-            return res.status(400).json({ success: false, error: 'top_id es requerido' });
+            return res.status(400).json({ success: false, error: 'ID del Top es requerido.' });
         }
+
+        // Configuración de Gemini con validación estable en v1 (In-handler initialization)
+        const apiKey = process.env.GEMINI_API_KEY;
+        const genAI = apiKey ? new GoogleGenerativeAI(apiKey, { apiVersion: "v1" }) : null;
+        // Usamos gemini-1.5-pro para máxima estabilidad con el SDK legacy
+        const modelText = genAI ? genAI.getGenerativeModel({ model: "gemini-1.5-pro" }) : null;
 
         if (!apiKey || !modelText) {
             console.error('[IA CONFIG ERROR] GEMINI_API_KEY is missing or SDK failed to init.');
