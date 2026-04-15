@@ -6,10 +6,7 @@ const supabase = createClient(
   process.env.SUPABASE_ANON_KEY
 );
 
-console.log("[DEBUG] Loading scan-dynamic.js module");
-
 export default async function handler(req, res) {
-    console.log("[DEBUG] scan-dynamic handler entered");
     if (req.method !== 'POST') {
         return res.status(405).json({ success: false, error: "Method Not Allowed" });
     }
@@ -18,86 +15,110 @@ export default async function handler(req, res) {
         const { prompt } = req.body;
         console.log(`[DYNAMIC INTEL] Analizando prompt: "${prompt}"`);
         
-        // 1. Configuración de IA con Gemini 1.5 Flash (Dynamic Import)
-        if (!process.env.GEMINI_API_KEY) {
+        const apiKey = process.env.GEMINI_API_KEY;
+        if (!apiKey) {
             throw new Error("GEMINI_API_KEY no configurada en el servidor.");
         }
-
-        const { GoogleGenerativeAI } = await import('@google/generative-ai');
-        const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY, { apiVersion: "v1" });
-        const modelFilter = genAI.getGenerativeModel({ 
-            model: "gemini-1.5-flash", 
-            generationConfig: { responseMimeType: "application/json" } 
-        });
 
         let filters = { minStock: 0, minMargin: 0, keyword: "" };
 
         if (prompt && prompt.trim() !== "") {
-            const aiPrompt = `
-            Extrae filtros técnicos del texto: "${prompt}".
-            Retorna UNICAMENTE JSON con estos campos numéricos y cadena vacía por defecto:
-            { "minStock": numero, "minMargin": numero, "keyword": "string descriptivo o vacio" }
+            const systemPrompt = `
+            Eres un analizador de lenguaje natural para e-commerce. 
+            Extrae filtros JSON de la petición del usuario.
+            Campos:
+            - minStock (número): stock mínimo solicitado.
+            - minMargin (número): margen mínimo solicitado.
+            - keyword (string): palabra clave de búsqueda.
+
+            Si el usuario dice "más de 15 de margen", minMargin es 15.
+            Si dice "barbacoa", keyword es "barbacoa".
+            Responde SOLO el JSON válido.
             `;
-            const aiResponse = await modelFilter.generateContent(aiPrompt);
-            const rawText = aiResponse.response.text();
-            try {
-                filters = JSON.parse(rawText.replace(/```(json)?|```/g, "").trim());
-            } catch (jsonErr) {
-                console.warn("[SCANNER IA] Error parseando filtros IA, usando por defecto:", jsonErr.message);
+
+            // Llamada REST Directa para el filtrado especializado
+            const model = "gemini-1.5-flash";
+            const url = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`;
+
+            const geminiRes = await fetch(url, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: `${systemPrompt}\n\nUsuario: "${prompt}"` }] }],
+                    generationConfig: { responseMimeType: "application/json" }
+                })
+            });
+
+            if (geminiRes.ok) {
+                const resultJson = await geminiRes.json();
+                const jsonText = resultJson.candidates?.[0]?.content?.parts?.[0]?.text;
+                if (jsonText) {
+                    try {
+                        const parsed = JSON.parse(jsonText);
+                        filters = { ...filters, ...parsed };
+                    } catch (e) {
+                        console.warn("[IA PARSE WARNING] No se pudo parsear JSON de filtros, usando valores por defecto.", jsonText);
+                    }
+                }
             }
         }
 
+        console.log("[DYNAMIC INTEL] Filtros aplicados:", filters);
+
         // 2. Consulta a Dropea
-        const CATALOG_QUERY = `
-          query GetMarketData($limit: Int) {
-            products(limit: $limit) {
-              data { id name stock_available cost_price pvpr category }
+        const gqlQuery = `
+          query GetProducts($first: Int, $keyword: String) {
+            products(first: $first, keyword: $keyword) {
+              edges {
+                node {
+                  id
+                  name
+                  category { name }
+                  cost
+                  pvp
+                  stock
+                }
+              }
             }
           }
         `;
-        const result = await dropeaQuery(CATALOG_QUERY, { limit: 100 });
-        if (result.errors) throw new Error(result.errors[0].message);
 
-        let items = result.data?.products?.data || [];
-        
-        items = items.map(p => ({
+        const dropeaData = await dropeaQuery(gqlQuery, { 
+            first: 100, 
+            keyword: filters.keyword || "" 
+        });
+
+        const allProducts = dropeaData?.data?.products?.edges?.map(e => e.node) || [];
+
+        // 3. Filtrado Local (Post-GQL)
+        const filteredProducts = allProducts.filter(p => {
+            const margin = (p.pvp || 0) - (p.cost || 0);
+            const stock = p.stock || 0;
+            return margin >= (filters.minMargin || 0) && stock >= (filters.minStock || 0);
+        });
+
+        // 4. Formatear para el frontend
+        const finalResults = filteredProducts.slice(0, 10).map(p => ({
             id: p.id,
             name: p.name,
-            stock: p.stock_available,
-            cost: p.cost_price,
-            pvp: p.pvpr,
-            margin: p.pvpr - p.cost_price,
-            category: p.category
+            category: p.category?.name || "General",
+            cost: p.cost,
+            pvp: p.pvp,
+            margin: (p.pvp - p.cost).toFixed(2),
+            stock: p.stock
         }));
 
-        // 3. Aplicar Filtros
-        if (filters.minStock > 0) items = items.filter(p => p.stock >= filters.minStock);
-        if (filters.minMargin > 0) items = items.filter(p => p.margin >= filters.minMargin);
-        if (filters.keyword && filters.keyword.length > 2) {
-            const kw = filters.keyword.toLowerCase();
-            items = items.filter(p => p.name.toLowerCase().includes(kw) || p.category.toLowerCase().includes(kw));
-        }
+        return res.status(200).json({
+            success: true,
+            data: finalResults,
+            filtersApplied: filters
+        });
 
-        items.sort((a, b) => b.margin - a.margin);
-        const finalResults = items.slice(0, 50);
-
-        // 4. Registro en Supabase
-        if (supabase && process.env.SUPABASE_URL && prompt && finalResults.length > 0) {
-            try {
-                await supabase.from('scans').insert([{
-                    product_name: `Búsqueda: ${prompt}`,
-                    analysis: `Filtros Aplicados: Stock > ${filters.minStock}, Margen > ${filters.minMargin}, Keyword: ${filters.keyword}. Encontrados: ${finalResults.length}`,
-                }]);
-            } catch (supaErr) {
-                console.error("[SCANNER SUPABASE] Error persistiendo scan:", supaErr.message);
-            }
-        }
-
-        // 5. Respuesta Estandarizada
-        res.status(200).json({ success: true, data: finalResults }); 
-
-    } catch (e) {
-        console.error("[ERROR SCANNER] ", e.message);
-        res.status(500).json({ success: false, error: "Fallo en el escaneo dinámico: " + e.message });
+    } catch (error) {
+        console.error("[SCAN DYNAMIC ERROR]", error);
+        return res.status(500).json({ 
+            success: false, 
+            error: "Error táctico en el escaneo dinámico: " + error.message 
+        });
     }
 }

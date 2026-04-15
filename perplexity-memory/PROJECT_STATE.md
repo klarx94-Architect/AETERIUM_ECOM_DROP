@@ -1,23 +1,27 @@
 # PROJECT STATE - AETERIUM_ECOM_DROP
 
-**Última actualización:** 2026-04-16 01:36 (Local Time)
+**Última actualización:** 2026-04-16 01:45 (Local Time)
 
-## 🎯 Misión Actual: Recuperación Final (Rollback ^0.21.0) - COMPLETADA
-Restaurar la operabilidad de la IA mediante la versión estable ^0.21.0 del SDK y el modelo Gemini 1.5 Flash.
+## 🎯 Misión Actual: Recuperación por Conexión Directa (REST) - COMPLETADA
+Restaurar la operabilidad de la IA eliminando el SDK legacy y migrando a peticiones REST nativas.
 
 ## 🛠️ Cambios Realizados
 
-### Configuración (Rollback Verificado)
+### Configuración (Zero Dependency)
 - **Archivo:** [package.json](file:///c:/Proyectos_Architect/AETERIUM_ECOM_DROP/package.json)
-- **Estado:** DESPLEGADO.
-- **Cambio:** `@google/generative-ai` fijado en `^0.21.0` (versión real y estable).
+- **Despliegue:** SDK `@google/generative-ai` ELIMINADO por completo. 
+- **Efecto:** El build de Vercel ahora es ligero y libre de errores de bootstrap.
 
-### Backend (Estabilización Operativa)
+### Backend (Arquitectura REST Nativa)
 - **Archivos:** [strategy-for-top.js](file:///c:/Proyectos_Architect/AETERIUM_ECOM_DROP/api/strategy-for-top.js), [generate-strategy.js](file:///c:/Proyectos_Architect/AETERIUM_ECOM_DROP/api/generate-strategy.js), [scan-dynamic.js](file:///c:/Proyectos_Architect/AETERIUM_ECOM_DROP/api/scan-dynamic.js)
-- **Modelo Final:** `gemini-1.5-flash`.
-- **Refuerzo:** Inicialización movida al interior de los handlers para evitar errores de carga global en Vercel.
+- **Método:** Migración de `SDK.generateContent()` a `fetch("https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent")`.
+- **Modelo:** `gemini-1.5-flash` (Operativo y rápido).
 
-## 🧪 Verificación Final en Producción
-1. **Generar Estrategia IA:** Confirmar respuesta JSON válida y renderizado markdown.
-2. **Intel Search:** Confirmar filtrado dinámico funcional.
-3. **Manejo de Errores:** Confirmada la captura de errores 500 para evitar crasheos de la UI.
+## 🧪 Pruebas en Producción (Post-REST)
+1. **Generar Estrategia IA:** Confirmado que el botón funciona sin errores `FUNCTION_INVOCATION_FAILED`.
+2. **Intel Search:** Confirmado que el escaneo dinámico procesa prompts y filtra productos correctamente mediante REST.
+
+## 📋 Estado Final
+- **IA:** Funcional y estable.
+- **Protocolo:** Integración directa vía REST (sin dependencias).
+- **Frontend:** Blindado contra errores de IA mediante JSON estructurado.

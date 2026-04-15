@@ -1,4 +1,3 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import { createClient } from '@supabase/supabase-js';
 
 // Inicialización de Supabase con fallback flexible
@@ -25,13 +24,9 @@ export default async function handler(req, res) {
             return res.status(400).json({ success: false, error: 'ID del Top es requerido.' });
         }
 
-        // Configuración de Gemini con validación estable en v1 (In-handler initialization)
-        const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "", { apiVersion: "v1" });
-        const modelText = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-
-        if (!process.env.GEMINI_API_KEY || !modelText) {
-            console.error('[IA CONFIG ERROR] GEMINI_API_KEY is missing or SDK failed to init.');
-            return res.status(500).json({ success: false, error: 'Configuración IA incompleta: falta la API key de Gemini o error de inicialización.' });
+        const apiKey = process.env.GEMINI_API_KEY;
+        if (!apiKey) {
+            return res.status(500).json({ success: false, error: 'Configuración IA incompleta: falta la API key de Gemini.' });
         }
 
         if (!supabase) {
@@ -39,10 +34,11 @@ export default async function handler(req, res) {
             return res.status(500).json({ success: false, error: "Supabase no está configurado en el servidor." });
         }
 
-        // 1. Obtener Metadatos del Top
+        // 1. Obtener Metadatos del Top y Productos
+        // Usamos select con subquery para obtener todo de una vez
         const { data: top, error: topError } = await supabase
             .from('tops')
-            .select('*')
+            .select('*, top_products(*)')
             .eq('id', top_id)
             .maybeSingle();
 
@@ -51,16 +47,7 @@ export default async function handler(req, res) {
             return res.status(404).json({ success: false, error: 'Top no encontrado en la base de datos.' });
         }
 
-        // 2. Obtener Productos del Top
-        const { data: products, error: prodError } = await supabase
-            .from('top_products')
-            .select('*')
-            .eq('top_id', top_id);
-
-        if (prodError) {
-            console.error("[IA ERROR] Error obteniendo productos:", prodError);
-            return res.status(500).json({ success: false, error: 'Error al recuperar productos del Top para la IA.' });
-        }
+        const products = top.top_products || [];
 
         // 3. Construir el Briefing para Gemini
         const briefing = {
@@ -109,9 +96,25 @@ Pasos críticos para lanzar este Top al mercado.
 Usa un tono profesional, militarizado pero pragmático. Cero relleno. Solo efectividad comercial.
         `;
 
-        // 4. Llamada a Gemini
-        const result = await modelText.generateContent(prompt);
-        const strategyText = result.response.text();
+        // 4. Llamada a Gemini vía REST (Eliminando dependencia del SDK)
+        const model = "gemini-1.5-flash";
+        const url = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`;
+
+        const geminiRes = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                contents: [{ parts: [{ text: prompt }] }]
+            })
+        });
+
+        if (!geminiRes.ok) {
+            const errorBody = await geminiRes.text();
+            throw new Error(`Error API Gemini REST: ${geminiRes.status} - ${errorBody}`);
+        }
+
+        const resultJson = await geminiRes.json();
+        const strategyText = resultJson.candidates?.[0]?.content?.parts?.[0]?.text || "No se pudo generar estrategia táctica.";
 
         // 5. Retornar Respuesta
         return res.status(200).json({ success: true, strategy: strategyText });

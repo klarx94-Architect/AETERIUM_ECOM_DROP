@@ -1,4 +1,3 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
@@ -12,42 +11,56 @@ export default async function handler(req, res) {
     }
 
     try {
-        const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "", { apiVersion: "v1" });
-        const modelText = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const apiKey = process.env.GEMINI_API_KEY;
+        if (!apiKey) {
+            return res.status(500).json({ success: false, error: "Falta Gemini API Key." });
+        }
 
         const { name, category, cost, pvp, margin } = req.body;
         console.log(`[STRATEGY AI] Generando reporte para: ${name}`);
 
         const prompt = `
-Eres el agente AETERIUM de inteligencia comercial. 
-Arma una estrategia de Guerrilla Dropshipping para este producto real de España:
-"${name}" - ${category} (Costo: €${cost} | PVP: €${pvp} | Margen: €${margin})
+        Genera un reporte estratégico de ventas para un producto de Dropshipping.
+        
+        PRODUCTO: ${name}
+        CATEGORÍA: ${category}
+        COSTO: ${cost}
+        PVP: ${pvp}
+        MARGEN: ${margin}
 
-Devuelve EXCELSIOR MARKDOWN con estas secciones:
-## 📊 Resumen Estratégico (Primavera/Verano)
-Diagnóstico de venta en 3 líneas directas.
-
-## 📝 Copies Guerrilla (Marketplace & WhatsApp)
-Escribe 3 variaciones de post pareciendo un humano real que limpia su garaje o compró dos por error. Cero estética de tienda. Casual y emocional.
-
-## 📸 Prompts para NanoBanana (Midjourney/Flux)
-Escribe 3 prompts fotorrealistas en INGLÉS para generar imágenes lifestyle. Ej: "iPhone 14 flash photo, folded barbecue resting on suburban messy grass, golden hour..."
+        El reporte debe incluir:
+        - Análisis de viabilidad.
+        - 3 Estrategias de marketing.
+        - Público objetivo.
+        - Copy sugerido para anuncio.
+        
+        Formato: Markdown.
         `;
 
-        const result = await modelText.generateContent(prompt);
-        const strategyText = result.response.text();
+        // Llamada Directa a Gemini vía REST
+        const model = "gemini-1.5-flash";
+        const url = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`;
 
-        // Persistencia en Supabase
-        if (supabase && process.env.SUPABASE_URL) {
-            await supabase.from('scans').insert([{
-                product_name: name,
-                analysis: strategyText
-            }]);
+        const geminiRes = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                contents: [{ parts: [{ text: prompt }] }]
+            })
+        });
+
+        if (!geminiRes.ok) {
+            const errorBody = await geminiRes.text();
+            throw new Error(`Error API Gemini REST: ${geminiRes.status} - ${errorBody}`);
         }
 
-        res.status(200).json({ success: true, strategy: strategyText });
-    } catch(e) {
-        console.error("[ERROR STRATEGY]", e.message);
-        res.status(500).json({ success: false, error: "Fallo generación IA: " + e.message });
+        const resultJson = await geminiRes.json();
+        const strategy = resultJson.candidates?.[0]?.content?.parts?.[0]?.text || "No se pudo generar la estrategia.";
+
+        return res.status(200).json({ success: true, strategy });
+
+    } catch (error) {
+        console.error("Error en generate-strategy IA:", error);
+        return res.status(500).json({ success: false, error: error.message });
     }
 }
