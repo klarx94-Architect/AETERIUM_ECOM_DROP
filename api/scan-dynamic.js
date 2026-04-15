@@ -1,5 +1,4 @@
 import { dropeaQuery } from '../dropea_connector.js';
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
@@ -7,7 +6,10 @@ const supabase = createClient(
   process.env.SUPABASE_ANON_KEY
 );
 
+console.log("[DEBUG] Loading scan-dynamic.js module");
+
 export default async function handler(req, res) {
+    console.log("[DEBUG] scan-dynamic handler entered");
     if (req.method !== 'POST') {
         return res.status(405).json({ success: false, error: "Method Not Allowed" });
     }
@@ -16,11 +18,12 @@ export default async function handler(req, res) {
         const { prompt } = req.body;
         console.log(`[DYNAMIC INTEL] Analizando prompt: "${prompt}"`);
         
-        // 1. Configuración de IA con Gemini 1.5 Pro (In-handler initialization to prevent bootstrap crash)
+        // 1. Configuración de IA con Gemini 1.5 Flash (Dynamic Import)
         if (!process.env.GEMINI_API_KEY) {
             throw new Error("GEMINI_API_KEY no configurada en el servidor.");
         }
 
+        const { GoogleGenerativeAI } = await import('@google/generative-ai');
         const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY, { apiVersion: "v1" });
         const modelFilter = genAI.getGenerativeModel({ 
             model: "gemini-1.5-flash", 
