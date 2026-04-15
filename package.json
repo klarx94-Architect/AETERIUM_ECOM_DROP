@@ -11,7 +11,7 @@
     "dev": "concurrently \"npm run server\" \"npm run client\""
   },
   "dependencies": {
-    "@google/generative-ai": "0.24.1",
+    "@google/generative-ai": "^0.21.0",
     "@supabase/supabase-js": "^2.49.4",
     "cors": "^2.8.6",
     "express": "^5.2.1"

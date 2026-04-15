@@ -26,12 +26,10 @@ export default async function handler(req, res) {
         }
 
         // Configuración de Gemini con validación estable en v1 (In-handler initialization)
-        const apiKey = process.env.GEMINI_API_KEY;
-        const genAI = apiKey ? new GoogleGenerativeAI(apiKey, { apiVersion: "v1" }) : null;
-        // Usamos gemini-1.5-pro para máxima estabilidad con el SDK legacy
-        const modelText = genAI ? genAI.getGenerativeModel({ model: "gemini-1.5-pro" }) : null;
+        const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "", { apiVersion: "v1" });
+        const modelText = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-        if (!apiKey || !modelText) {
+        if (!process.env.GEMINI_API_KEY || !modelText) {
             console.error('[IA CONFIG ERROR] GEMINI_API_KEY is missing or SDK failed to init.');
             return res.status(500).json({ success: false, error: 'Configuración IA incompleta: falta la API key de Gemini o error de inicialización.' });
         }

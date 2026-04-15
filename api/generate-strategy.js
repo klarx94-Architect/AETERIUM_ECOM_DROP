@@ -13,7 +13,7 @@ export default async function handler(req, res) {
 
     try {
         const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "", { apiVersion: "v1" });
-        const modelText = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
+        const modelText = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
         const { name, category, cost, pvp, margin } = req.body;
         console.log(`[STRATEGY AI] Generando reporte para: ${name}`);
