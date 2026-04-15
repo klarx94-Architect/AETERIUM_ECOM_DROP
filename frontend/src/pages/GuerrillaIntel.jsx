@@ -26,15 +26,26 @@ export default function GuerrillaIntel() {
     const [modal, setModal] = useState({ show: false, content: '', loading: false, title: '' });
 
     // Cálculos dinámicos
-    const avgMargin = products.length > 0 
-        ? (products.reduce((acc, p) => acc + parseFloat(p.margin), 0) / products.length).toFixed(2)
-        : "0.00";
-    
     const activeCount = products.length;
+    
+    const avgMargin = activeCount > 0 
+        ? (products.reduce((acc, p) => acc + (parseFloat(p.margin) || 0), 0) / activeCount).toFixed(2)
+        : "0.00";
+
+    const totalStock = products.reduce((acc, p) => acc + (parseInt(p.stock) || 0), 0);
+    
+    // Revenue Est. Hoy lo transformamos a Beneficio Potencial del catálogo actual
+    const potentialRevenue = products.reduce((acc, p) => acc + ((parseFloat(p.margin) || 0) * (parseInt(p.stock) || 0)), 0);
+    const formattedPotential = potentialRevenue > 10000 
+        ? `€${(potentialRevenue / 1000).toFixed(1)}k` 
+        : `€${potentialRevenue.toFixed(0)}`;
 
     useEffect(() => {
         fetch('/api/products')
-            .then(res => res.json())
+            .then(res => {
+                if (!res.ok) throw new Error("Fallo de red");
+                return res.json();
+            })
             .then(data => { setProducts(Array.isArray(data) ? data : []); setLoading(false); })
             .catch(() => { setProducts([]); setLoading(false); });
     }, []);
@@ -77,8 +88,8 @@ export default function GuerrillaIntel() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <StatCard label="Margen Promedio" value={`€${avgMargin}`} subtext="+Real Time" trend={1} icon={<TrendingUp size={16}/>} />
                 <StatCard label="Productos Activos" value={activeCount} subtext="Live Nodes" trend={1} icon={<Package size={16}/>} />
-                <StatCard label="Órdenes Pendientes" value="3" subtext="COD Mode" trend={0} icon={<ShoppingCart size={16}/>} />
-                <StatCard label="Revenue Est. Hoy" value={`€${(activeCount * 3.4).toFixed(0)}`} subtext="Basado en Intel" trend={1} icon={<DollarSign size={16}/>} />
+                <StatCard label="Stock Total" value={totalStock} subtext="Unidades" trend={1} icon={<ShoppingCart size={16}/>} />
+                <StatCard label="Beneficio Pot." value={formattedPotential} subtext="Basado en Intel" trend={1} icon={<DollarSign size={16}/>} />
             </div>
 
             {/* Main Content Area */}
