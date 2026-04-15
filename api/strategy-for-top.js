@@ -14,9 +14,10 @@ try {
   console.error("Error top-level init Supabase en /api/strategy-for-top:", err);
 }
 
-// Configuración de Gemini con validación explícita
+// Configuración de Gemini con validación estable en v1
 const apiKey = process.env.GEMINI_API_KEY;
-const genAI = apiKey ? new GoogleGenerativeAI(apiKey) : null;
+// Forzamos la versión v1 de la API para evitar el error 404 en v1beta con gemini-1.5-flash
+const genAI = apiKey ? new GoogleGenerativeAI(apiKey, { apiVersion: "v1" }) : null;
 const modelText = genAI ? genAI.getGenerativeModel({ model: "gemini-1.5-flash" }) : null;
 
 export default async function handler(req, res) {

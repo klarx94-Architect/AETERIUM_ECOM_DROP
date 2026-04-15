@@ -1,7 +1,5 @@
-fix: unify Gemini config and enhance AI diagnostic logging
+fix: explicitly set Gemini API version to v1 to avoid 404 in strategy-for-top.js
 
-- Aligned GEMINI_API_KEY usage with generate-strategy.js.
-- Added explicit check for API key with descriptive 500 error.
-- Expanded console.error to log the full object 'e' for Vercel debugging.
-- Added Supabase environment variable fallback (VITE_ vs standard).
-- Ensured JSON response in all catch blocks.
+- Resolved "models/gemini-1.5-flash is not found for API version v1beta" error.
+- Updated GoogleGenerativeAI constructor to use apiVersion: 'v1'.
+- Aligned internal documentation and comments for the AI module.
