@@ -13,8 +13,12 @@ export async function scanDynamic(prompt) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ prompt })
   });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return res.json();
+  
+  const data = await res.json();
+  if (!res.ok || data.success === false) {
+    throw new Error(data.error || `HTTP ${res.status}`);
+  }
+  return data.data || [];
 }
 
 export async function generateStrategy(product) {
@@ -23,8 +27,12 @@ export async function generateStrategy(product) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(product)
   });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return res.json();
+  
+  const data = await res.json();
+  if (!res.ok || data.success === false) {
+    throw new Error(data.error || `HTTP ${res.status}`);
+  }
+  return data;
 }
 
 export async function createOrder(orderData) {

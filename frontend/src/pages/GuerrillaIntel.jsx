@@ -66,9 +66,17 @@ export default function GuerrillaIntel() {
                 body: JSON.stringify({ prompt })
             });
             const data = await res.json();
-            setProducts(Array.isArray(data) ? data : []);
+            
+            if (!res.ok || data.success === false) {
+                console.error("[SCAN ERROR]", data.error);
+                // Opcional: mostrar alerta de error
+                setProducts([]);
+            } else {
+                setProducts(Array.isArray(data.data) ? data.data : []);
+            }
         } catch (err) {
             console.error(err);
+            setProducts([]);
         }
         setLoading(false);
     };
@@ -119,9 +127,18 @@ export default function GuerrillaIntel() {
                 body: JSON.stringify(p)
             });
             const data = await res.json();
-            setModal(prev => ({ ...prev, content: data.strategy, loading: false }));
+            
+            if (!res.ok || data.success === false) {
+                setModal(prev => ({ 
+                    ...prev, 
+                    content: `Error Táctico: ${data.error || 'Fallo desconocido en la IA.'}`, 
+                    loading: false 
+                }));
+            } else {
+                setModal(prev => ({ ...prev, content: data.strategy, loading: false }));
+            }
         } catch(err) {
-            setModal(prev => ({ ...prev, content: 'Error generando Estrategia de IA.', loading: false }));
+            setModal(prev => ({ ...prev, content: 'Error de conexión con el centro táctico IA.', loading: false }));
         }
     };
 

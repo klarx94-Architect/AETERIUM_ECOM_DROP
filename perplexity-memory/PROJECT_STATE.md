@@ -1,32 +1,31 @@
 # PROJECT STATE - AETERIUM_ECOM_DROP
 
-**Última actualización:** 2026-04-15 23:37 (Local Time)
+**Última actualización:** 2026-04-16 01:05 (Local Time)
 
-## 🎯 Misión Actual: Fase 0 IA (Gemini Estable)
-Estabilizar la generación de estrategias mediante IA para los Tops de productos.
+## 🎯 Misión Actual: Migración a Gemini 3 Flash & Estabilización API
+Finalizar la migración técnica a Gemini 3 Flash y asegurar que todos los endpoints devuelven JSON válido.
 
 ## 🛠️ Cambios Realizados
 
-### Backend (IA Gemini)
-- **Archivos:** [strategy-for-top.js](file:///c:/Proyectos_Architect/AETERIUM_ECOM_DROP/api/strategy-for-top.js), [generate-strategy.js](file:///c:/Proyectos_Architect/AETERIUM_ECOM_DROP/api/generate-strategy.js)
-- **Ajustes:**
-    - Antes: Usaba `v1beta` (por defecto) o `v1` sin consistencia, devolviendo JSON plano sin bandera de éxito.
-    - Después: Forzado a `apiVersion: "v1"` en la inicialización de `GoogleGenerativeAI`. Respuestas estandarizadas a `{ success: true/false, strategy, error }`.
-- **Solución:** Corregido el error `models/gemini-1.5-flash is not found for API version v1beta`.
+### Backend (IA Gemini 3 Flash)
+- **Archivos:** [strategy-for-top.js](file:///c:/Proyectos_Architect/AETERIUM_ECOM_DROP/api/strategy-for-top.js), [generate-strategy.js](file:///c:/Proyectos_Architect/AETERIUM_ECOM_DROP/api/generate-strategy.js), [scan-dynamic.js](file:///c:/Proyectos_Architect/AETERIUM_ECOM_DROP/api/scan-dynamic.js)
+- **Estado:** PENDIENTE DE DESPLIEGUE (COMMIT LISTO).
+- **Mejoras:** 
+    - Migración total al modelo `gemini-3-flash` (reemplazando al descontinuado 1.5).
+    - Eliminado el uso de `v1beta`; ahora se usa explícitamente `apiVersion: "v1"`.
+    - **Estabilización de Scan Dynamic:** Ahora `/api/scan-dynamic` devuelve siempre un objeto JSON `{ success, data/error }`, previniendo errores de `Unexpected token 'A'` en el frontend.
 
 ### Frontend (User Interface)
-- **Archivos:** [TopWarRoom.jsx](file:///c:/Proyectos_Architect/AETERIUM_ECOM_DROP/frontend/src/pages/TopWarRoom.jsx)
+- **Archivos:** [lib/api.js](file:///c:/Proyectos_Architect/AETERIUM_ECOM_DROP/frontend/src/lib/api.js), [GuerrillaIntel.jsx](file:///c:/Proyectos_Architect/AETERIUM_ECOM_DROP/frontend/src/pages/GuerrillaIntel.jsx)
 - **Ajustes:**
-    - Antes: El botón de estrategia asumía una respuesta válida y no verificaba errores de negocio de la IA.
-    - Después: Implementada lógica defensiva que verifica `data.success` y la existencia de `data.strategy`. Manejo de errores amigable en el modal con opción de reintento.
-- **Resultado:** La UI ya no se rompe si la IA falla.
+    - Estandarización de llamadas API para soportar el formato `{ success, ... }`.
+    - Mejora en el manejo de errores en el buscador de mercado y en la generación de estrategias individuales.
 
-## 🧪 Cómo probar los cambios
-1. Navegar a la sala de guerra de cualquier Top (`/tops/:id`).
-2. Pulsar el botón **"Generar Estrategia IA"**.
-3. **Escenario Éxito:** Si la clave API es válida, aparecerá el texto de la estrategia en markdown.
-4. **Escenario Fallo:** Si hay un problema (ej. falta API key), el modal mostrará un "Error Táctico" con el mensaje descriptivo y un botón para reintentar.
+## 🧪 Pruebas en Producción (Post-Deploy)
+1. **Generar Estrategia IA:** Verificar que el botón responde con contenido de Gemini 3.
+2. **Intel Search:** Realizar una búsqueda (ej. "barbacoa") y confirmar que los resultados se filtran sin errores de JSON.
+3. **Escenario Error:** Confirmar que si falla la IA, el modal muestra el mensaje de error controlado y permite cerrar/reintentar.
 
 ## 📋 Próximos pasos
-- [ ] Monitorear logs de Vercel para confirmar estabilidad en producción.
-- [ ] Optimizar el prompt de la IA para mayor agresividad comercial.
+- [x] Monitorear el primer uso real de un Top válido por parte del usuario.
+- [ ] Refinar los prompts de marketing en el backend para mayor efectividad.
