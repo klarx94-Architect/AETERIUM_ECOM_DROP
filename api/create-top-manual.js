@@ -7,13 +7,15 @@ try {
       process.env.SUPABASE_URL,
       process.env.SUPABASE_ANON_KEY
     );
+  } else {
+    console.warn('create-top-manual: SUPABASE env vars missing, no se podrá insertar BD.');
   }
 } catch (err) {
-  console.error("Error top-level init Supabase en /api/create-top-manual:", err.message);
+  console.error('create-top-manual: error instanciando Supabase', err.message);
+  supabase = null;
 }
 
 export default async function handler(req, res) {
-  // Enveloping whole handler to prevent unhandled explosions
   try {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS');
@@ -24,15 +26,11 @@ export default async function handler(req, res) {
       return res.status(405).json({ error: "Method Not Allowed" });
     }
 
-    if (!supabase || !process.env.SUPABASE_URL) {
-        throw new Error("Supabase is not configured.");
-    }
-
     const protocol = req.headers['x-forwarded-proto'] || 'http';
     const host = req.headers.host || req.headers['x-vercel-deployment-url'];
     
     if (!host) {
-        throw new Error("No se pudo resolver el host para la llamada interna.");
+        return res.status(500).json({ error: "No se pudo resolver el host para la llamada interna." });
     }
 
     const apiUrl = `${protocol}://${host}/api/products`;
@@ -43,7 +41,7 @@ export default async function handler(req, res) {
       const productReq = await fetch(apiUrl);
       if (!productReq.ok) {
           console.error(`create-top-manual: /api/products respondió ${productReq.status}`);
-          throw new Error("Products endpoint failed");
+          return res.status(500).json({ error: 'No se pudo generar el Top Manual. Catálogo vacío o inaccesible.' });
       }
       
       const data = await productReq.json();
@@ -54,50 +52,66 @@ export default async function handler(req, res) {
     }
 
     if (products.length === 0) {
-        return res.status(200).json({ error: 'No hay productos suficientes para Top Manual, el catálogo está vacío.' });
+        return res.status(200).json({ error: 'No se pudo generar el Top Manual. Catálogo vacío o inaccesible.' });
     }
 
     // 1. Obtener y asegurar orden por margen DESC, tomar Top 5
     const top5 = products.sort((a, b) => (b.margin || 0) - (a.margin || 0)).slice(0, 5);
 
-    // 2. Insertar en tabla tops
-    const topName = `Top 5 manual – ${new Date().toISOString().split('T')[0]}`;
-    const { data: topData, error: topError } = await supabase
-      .from('tops')
-      .insert([{
-         name: topName,
-         description: "Top 5 por margen construido desde catálogo actual",
-         type: "top5"
-      }])
-      .select('id')
-      .single();
+    if (!supabase) {
+        console.error("Supabase client is null, no se puede insertar el Top");
+        return res.status(500).json({ error: "No se pudo guardar el Top Manual en Supabase." });
+    }
 
-    if (topError) throw new Error("Error insertando el Top: " + topError.message);
+    try {
+      // 2. Insertar en tabla tops
+      const topName = `Top 5 manual – ${new Date().toISOString().split('T')[0]}`;
+      const { data: topData, error: topError } = await supabase
+        .from('tops')
+        .insert([{
+           name: topName,
+           description: "Top 5 por margen construido desde catálogo actual",
+           type: "top5"
+        }])
+        .select('id')
+        .single();
 
-    const topId = topData.id;
+      if (topError) {
+          console.error("Error insertando el Top en BD:", topError.message);
+          return res.status(500).json({ error: "No se pudo guardar el Top Manual en Supabase." });
+      }
 
-    // 3. Insertar en top_products
-    const insertTopProducts = top5.map(p => ({
-       top_id: topId,
-       product_id: String(p.id),
-       name: p.name,
-       category: p.category || '',
-       margin: parseFloat(p.margin || 0),
-       stock: parseInt(p.stock || 0),
-       status: 'in_test'
-    }));
+      const topId = topData.id;
 
-    const { error: prodError } = await supabase
-      .from('top_products')
-      .insert(insertTopProducts);
+      // 3. Insertar en top_products
+      const insertTopProducts = top5.map(p => ({
+         top_id: topId,
+         product_id: String(p.id),
+         name: p.name,
+         category: p.category || '',
+         margin: parseFloat(p.margin || 0),
+         stock: parseInt(p.stock || 0),
+         status: 'in_test'
+      }));
 
-    if (prodError) throw new Error("Error vinculando productos al top: " + prodError.message);
+      const { error: prodError } = await supabase
+        .from('top_products')
+        .insert(insertTopProducts);
 
-    // 4. Retornar éxito JSON
-    return res.status(200).json({ top_id: topId, count_products: top5.length });
+      if (prodError) {
+          console.error("Error vinculando productos al top en BD:", prodError.message);
+          return res.status(500).json({ error: "No se pudo guardar el Top Manual en Supabase." });
+      }
 
-  } catch (error) {
-    console.error("[TOP CREATOR GLOBAL ERROR]", error.message);
-    return res.status(500).json({ error: error.message || "Error interno del servidor" });
+      // 4. Retornar éxito JSON
+      return res.status(200).json({ top_id: topId, count_products: top5.length });
+    } catch (dbCrash) {
+      console.error("Crash fatal interactuando con Supabase BD:", dbCrash.message);
+      return res.status(500).json({ error: "No se pudo guardar el Top Manual en Supabase." });
+    }
+
+  } catch (fatalError) {
+    console.error("[TOP CREATOR GLOBAL ERROR]", fatalError.message);
+    return res.status(500).json({ error: 'No se pudo generar el Top Manual. Error interno.' });
   }
 }
