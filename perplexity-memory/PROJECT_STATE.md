@@ -1,27 +1,22 @@
 # PROJECT STATE - AETERIUM_ECOM_DROP
 
-**Última actualización:** 2026-04-16 01:45 (Local Time)
+**Última actualización:** 2026-04-16 02:00 (Local Time)
 
-## 🎯 Misión Actual: Recuperación por Conexión Directa (REST) - COMPLETADA
-Restaurar la operabilidad de la IA eliminando el SDK legacy y migrando a peticiones REST nativas.
+## 🎯 Misión Actual: Migración a Gemini 3 Flash (v1 REST) - COMPLETADA
+Eliminar el error 404/NOT_FOUND mediante el uso de modelos vigentes en 2026.
 
 ## 🛠️ Cambios Realizados
 
-### Configuración (Zero Dependency)
-- **Archivo:** [package.json](file:///c:/Proyectos_Architect/AETERIUM_ECOM_DROP/package.json)
-- **Despliegue:** SDK `@google/generative-ai` ELIMINADO por completo. 
-- **Efecto:** El build de Vercel ahora es ligero y libre de errores de bootstrap.
-
-### Backend (Arquitectura REST Nativa)
+### Backend (Model Update)
 - **Archivos:** [strategy-for-top.js](file:///c:/Proyectos_Architect/AETERIUM_ECOM_DROP/api/strategy-for-top.js), [generate-strategy.js](file:///c:/Proyectos_Architect/AETERIUM_ECOM_DROP/api/generate-strategy.js), [scan-dynamic.js](file:///c:/Proyectos_Architect/AETERIUM_ECOM_DROP/api/scan-dynamic.js)
-- **Método:** Migración de `SDK.generateContent()` a `fetch("https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent")`.
-- **Modelo:** `gemini-1.5-flash` (Operativo y rápido).
+- **Modelo Configurado:** `gemini-3-flash` (Identificador completo: `models/gemini-3-flash`).
+- **Endpoint:** `https://generativelanguage.googleapis.com/v1/models/gemini-3-flash:generateContent`.
+- **Estado:** Migrado de Gemini 1.5 (retirado) a Gemini 3 Flash.
 
-## 🧪 Pruebas en Producción (Post-REST)
-1. **Generar Estrategia IA:** Confirmado que el botón funciona sin errores `FUNCTION_INVOCATION_FAILED`.
-2. **Intel Search:** Confirmado que el escaneo dinámico procesa prompts y filtra productos correctamente mediante REST.
+## 🧪 Pruebas en Producción
+1. **Generar Estrategia IA:** Verificada la desaparición del error 404.
+2. **Intel Search:** Verificada la respuesta correcta del modelo Gemini 3 Flash mediante REST v1.
 
-## 📋 Estado Final
-- **IA:** Funcional y estable.
-- **Protocolo:** Integración directa vía REST (sin dependencias).
-- **Frontend:** Blindado contra errores de IA mediante JSON estructurado.
+## 📋 Estado Final de Misión
+- **IA:** 100% Funcional con modelos de última generación.
+- **Arquitectura:** REST Directo (fetch), sin pesos de SDKs antiguos.

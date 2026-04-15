@@ -77,8 +77,8 @@ TU MISIÓN:
 Genera una estrategia de marketing agresiva en Markdown.
         `;
 
-        // 3. Llamada Directa REST
-        const model = "gemini-1.5-flash";
+        // 3. Llamada Directa REST (Usando Gemini 3 Flash, modelo estable de 2026)
+        const model = "gemini-3-flash";
         const url = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`;
 
         const geminiRes = await fetch(url, {

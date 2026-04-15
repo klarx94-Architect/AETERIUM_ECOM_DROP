@@ -22,7 +22,7 @@ export default async function handler(req, res) {
 
         if (prompt && prompt.trim() !== "") {
             const systemPrompt = `Extrae filtros JSON: minStock, minMargin, keyword de: "${prompt}". Responde solo JSON.`;
-            const model = "gemini-1.5-flash";
+            const model = "gemini-3-flash";
             const url = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`;
 
             const geminiRes = await fetch(url, {

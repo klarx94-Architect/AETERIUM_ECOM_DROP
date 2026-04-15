@@ -37,8 +37,8 @@ export default async function handler(req, res) {
         Formato: Markdown.
         `;
 
-        // Llamada Directa a Gemini vía REST
-        const model = "gemini-1.5-flash";
+        // Llamada Directa a Gemini vía REST (Gemini 3 Flash)
+        const model = "gemini-3-flash";
         const url = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`;
 
         const geminiRes = await fetch(url, {
