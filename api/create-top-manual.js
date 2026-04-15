@@ -66,18 +66,22 @@ export default async function handler(req, res) {
     try {
       // 2. Insertar en tabla tops
       const topName = `Top 5 manual – ${new Date().toISOString().split('T')[0]}`;
-      const { data: topData, error: topError } = await supabase
-        .from('tops')
-        .insert([{
+      const topPayload = {
            name: topName,
            description: "Top 5 por margen construido desde catálogo actual",
-           type: "top5"
-        }])
+           type: "top5",
+           category: null,
+           status: "active"
+      };
+
+      const { data: topData, error: topError } = await supabase
+        .from('tops')
+        .insert([topPayload])
         .select('id')
         .single();
 
       if (topError) {
-          console.error("Error insertando el Top en BD:", topError.message);
+          console.error('create-top-manual: error insertando en tops', topError);
           return res.status(500).json({ error: "No se pudo guardar el Top Manual en Supabase." });
       }
 
@@ -86,11 +90,11 @@ export default async function handler(req, res) {
       // 3. Insertar en top_products
       const insertTopProducts = top5.map(p => ({
          top_id: topId,
-         product_id: String(p.id),
-         name: p.name,
-         category: p.category || '',
-         margin: parseFloat(p.margin || 0),
-         stock: parseInt(p.stock || 0),
+         product_id: p.id || p.product_id || 'N/A',
+         name: p.name || 'Sin nombre',
+         category: p.category || null,
+         margin: p.margin != null ? Number(p.margin) : null,
+         stock: p.stock != null ? parseInt(p.stock, 10) : null,
          status: 'in_test'
       }));
 
@@ -99,19 +103,19 @@ export default async function handler(req, res) {
         .insert(insertTopProducts);
 
       if (prodError) {
-          console.error("Error vinculando productos al top en BD:", prodError.message);
+          console.error('create-top-manual: error insertando top_products', prodError);
           return res.status(500).json({ error: "No se pudo guardar el Top Manual en Supabase." });
       }
 
       // 4. Retornar éxito JSON
       return res.status(200).json({ top_id: topId, count_products: top5.length });
     } catch (dbCrash) {
-      console.error("Crash fatal interactuando con Supabase BD:", dbCrash.message);
+      console.error("Crash fatal interactuando con Supabase BD:", dbCrash);
       return res.status(500).json({ error: "No se pudo guardar el Top Manual en Supabase." });
     }
 
   } catch (fatalError) {
-    console.error("[TOP CREATOR GLOBAL ERROR]", fatalError.message);
+    console.error("[TOP CREATOR GLOBAL ERROR]", fatalError);
     return res.status(500).json({ error: 'No se pudo generar el Top Manual. Error interno.' });
   }
 }
