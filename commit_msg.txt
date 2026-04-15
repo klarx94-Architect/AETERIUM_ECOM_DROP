@@ -1,0 +1,7 @@
+feat: add manual top creation and war room view
+
+- Create SQL schema for tops and top_products
+- Add /api/create-top-manual backend endpoint
+- Add creation button to GuerrillaIntel dashboard
+- Create /top/:id War Room frontend view
+- Install @supabase/supabase-js in frontend

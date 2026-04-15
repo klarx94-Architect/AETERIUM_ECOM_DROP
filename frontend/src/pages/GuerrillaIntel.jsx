@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Search, ExternalLink, FileText, Loader2, X, TrendingUp, Package, ShoppingCart, DollarSign } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Search, ExternalLink, FileText, Loader2, X, TrendingUp, Package, ShoppingCart, DollarSign, Crosshair } from 'lucide-react';
 
 function StatCard({ label, value, subtext, icon, trend }) {
     return (
@@ -20,10 +21,15 @@ function StatCard({ label, value, subtext, icon, trend }) {
 }
 
 export default function GuerrillaIntel() {
+    const navigate = useNavigate();
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [prompt, setPrompt] = useState("");
     const [modal, setModal] = useState({ show: false, content: '', loading: false, title: '' });
+    
+    // Estado para la creación del Top
+    const [creatingTop, setCreatingTop] = useState(false);
+    const [createError, setCreateError] = useState("");
 
     // Cálculos dinámicos
     const activeCount = products.length;
@@ -67,6 +73,32 @@ export default function GuerrillaIntel() {
         setLoading(false);
     };
 
+    const handleCreateTop = async () => {
+        setCreatingTop(true);
+        setCreateError("");
+        try {
+            const res = await fetch('/api/create-top-manual', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            const data = await res.json();
+            
+            if (!res.ok) {
+                throw new Error(data.error || "Falló la creación del top");
+            }
+            
+            // Navegar a la sala de guerra con el top recién creado
+            if (data.top_id) {
+                navigate(`/top/${data.top_id}`);
+            }
+        } catch (err) {
+            console.error(err);
+            setCreateError(err.message);
+        } finally {
+            setCreatingTop(false);
+        }
+    };
+
     const generateAI = async (p) => {
         setModal({ show: true, content: '', loading: true, title: p.name });
         try {
@@ -84,6 +116,14 @@ export default function GuerrillaIntel() {
 
     return (
         <div className="space-y-8 animate-in fade-in duration-700">
+            {/* Create Error Alert Soft */}
+            {createError && (
+                <div className="p-3 mb-4 rounded-lg bg-red-900/40 border border-red-500/20 text-red-200 text-sm flex justify-between items-center">
+                    <span>{createError}</span>
+                    <button onClick={() => setCreateError("")} className="hover:text-white"><X size={16}/></button>
+                </div>
+            )}
+
             {/* Summary Stats Region */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <StatCard label="Margen Promedio" value={`€${avgMargin}`} subtext="+Real Time" trend={1} icon={<TrendingUp size={16}/>} />
@@ -103,22 +143,33 @@ export default function GuerrillaIntel() {
                         <p className="text-xs text-slate-500 mt-1 uppercase tracking-wider font-mono">Motor de inteligencia de mercado • Dropea API</p>
                     </div>
 
-                    <form onSubmit={handleSearch} className="flex gap-2 w-full md:w-auto">
-                        <div className="relative flex-1 md:w-80">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-600" size={16} />
-                            <input 
-                                type="text" 
-                                value={prompt}
-                                onChange={(e) => setPrompt(e.target.value)}
-                                placeholder="Escribe tu prompt de búsqueda..." 
-                                className="w-full pl-10 pr-4 py-2 bg-white/5 border border-white/10 rounded-lg text-sm focus:ring-1 focus:ring-aeterium-gold/50 outline-none transition-all placeholder:text-slate-700 text-white font-medium"
-                            />
-                        </div>
-                        <button type="submit" disabled={loading} className="intel-gradient px-6 py-2 rounded-lg text-aeterium-black text-xs font-black uppercase tracking-wider flex items-center gap-2 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-gold">
-                            {loading ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
-                            Intel Search
+                    <div className="flex gap-2 w-full md:w-auto flex-wrap">
+                        <button 
+                            onClick={handleCreateTop} 
+                            disabled={creatingTop || loading || products.length === 0} 
+                            className="bg-white/5 border border-white/10 hover:border-white/30 text-white px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider flex items-center gap-2 hover:bg-white/10 transition-all disabled:opacity-50"
+                        >
+                            {creatingTop ? <Loader2 size={16} className="animate-spin text-slate-400" /> : <Crosshair size={16} className="text-aeterium-gold" />}
+                            {creatingTop ? 'Creando top...' : 'Crear Top Manual (Top 5)'}
                         </button>
-                    </form>
+                        
+                        <form onSubmit={handleSearch} className="flex gap-2 flex-1 md:w-auto">
+                            <div className="relative flex-1 md:w-80">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-600" size={16} />
+                                <input 
+                                    type="text" 
+                                    value={prompt}
+                                    onChange={(e) => setPrompt(e.target.value)}
+                                    placeholder="Prompt de búsqueda..." 
+                                    className="w-full pl-10 pr-4 py-2 bg-white/5 border border-white/10 rounded-lg text-sm focus:ring-1 focus:ring-aeterium-gold/50 outline-none transition-all placeholder:text-slate-700 text-white font-medium"
+                                />
+                            </div>
+                            <button type="submit" disabled={loading} className="intel-gradient px-6 py-2 rounded-lg text-aeterium-black text-xs font-black uppercase tracking-wider flex items-center gap-2 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-gold">
+                                {loading ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
+                                Intel Search
+                            </button>
+                        </form>
+                    </div>
                 </div>
 
                 <div className="overflow-x-auto">

@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-do
 import { Shield, Zap, LayoutGrid, Settings, BarChart3 } from 'lucide-react';
 import GuerrillaIntel from './pages/GuerrillaIntel';
 import DropeaSync from './pages/DropeaSync';
+import TopWarRoom from './pages/TopWarRoom';
 
 function Sidebar() {
   const location = useLocation();
@@ -96,6 +97,7 @@ export default function App() {
             <Routes>
               <Route path="/" element={<GuerrillaIntel />} />
               <Route path="/sync" element={<DropeaSync />} />
+              <Route path="/top/:id" element={<TopWarRoom />} />
             </Routes>
           </div>
         </main>
