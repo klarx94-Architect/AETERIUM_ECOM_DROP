@@ -1,24 +1,15 @@
 import { createClient } from '@supabase/supabase-js';
 
-let supabaseCache = null;
-
-function getSupabase() {
-  if (supabaseCache) return supabaseCache;
-  try {
-    const url = process.env.SUPABASE_URL;
-    const key = process.env.SUPABASE_ANON_KEY;
-
-    if (url && key) {
-      supabaseCache = createClient(url, key);
-      return supabaseCache;
-    } else {
-      console.warn('create-top-manual: SUPABASE_URL o SUPABASE_ANON_KEY no están definidos en este contexto de Vercel');
-      return null;
-    }
-  } catch (err) {
-    console.error('create-top-manual: error instanciando Supabase', err);
-    return null;
+let supabase = null;
+try {
+  if (process.env.SUPABASE_URL && process.env.SUPABASE_ANON_KEY) {
+    supabase = createClient(
+      process.env.SUPABASE_URL,
+      process.env.SUPABASE_ANON_KEY
+    );
   }
+} catch (err) {
+  console.error("Error top-level init Supabase en /api/create-top-manual:", err.message);
 }
 
 export default async function handler(req, res) {
@@ -31,8 +22,6 @@ export default async function handler(req, res) {
     if (req.method !== 'POST') {
       return res.status(405).json({ error: "Method Not Allowed" });
     }
-
-    const supabase = getSupabase();
 
     const protocol = req.headers['x-forwarded-proto'] || 'http';
     const host = req.headers.host || req.headers['x-vercel-deployment-url'];
@@ -89,7 +78,7 @@ export default async function handler(req, res) {
         .single();
 
       if (topError) {
-          console.error('create-top-manual: error insertando en tops', JSON.stringify(topError, null, 2));
+          console.error('create-top-manual: error insertando en tops', topError);
           return res.status(500).json({ error: "No se pudo guardar el Top Manual en Supabase." });
       }
 
@@ -111,19 +100,19 @@ export default async function handler(req, res) {
         .insert(insertTopProducts);
 
       if (prodError) {
-          console.error('create-top-manual: error insertando top_products', JSON.stringify(prodError, null, 2));
+          console.error('create-top-manual: error insertando top_products', prodError);
           return res.status(500).json({ error: "No se pudo guardar el Top Manual en Supabase." });
       }
 
       // 4. Retornar éxito JSON
       return res.status(200).json({ top_id: topId, count_products: top5.length });
     } catch (dbCrash) {
-      console.error("Crash fatal interactuando con Supabase BD:", dbCrash.stack || dbCrash);
+      console.error("Crash fatal interactuando con Supabase BD:", dbCrash);
       return res.status(500).json({ error: "No se pudo guardar el Top Manual en Supabase." });
     }
 
   } catch (fatalError) {
-    console.error("[TOP CREATOR GLOBAL ERROR]", fatalError.stack || fatalError);
+    console.error("[TOP CREATOR GLOBAL ERROR]", fatalError);
     return res.status(500).json({ error: 'No se pudo guardar el Top Manual en Supabase.' });
   }
 }
