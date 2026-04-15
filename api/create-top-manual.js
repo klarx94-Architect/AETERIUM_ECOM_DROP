@@ -64,10 +64,10 @@ export default async function handler(req, res) {
       // 2. Insertar en tabla tops
       const topName = `Top 5 manual – ${new Date().toISOString().split('T')[0]}`;
       const topPayload = {
-           name: topName,
+           name: topName.substring(0, 100), // Limitar longitud por seguridad
            description: "Top 5 por margen construido desde catálogo actual",
            type: "top5",
-           category: null, // Opcional según esquema
+           category: "Estrategia Manual",
            status: "active"
       };
 
@@ -77,42 +77,51 @@ export default async function handler(req, res) {
         .select();
 
       if (topError || !topRows || topRows.length === 0) {
-          console.error('create-top-manual: error insertando en tops', topError || 'No data returned');
-          return res.status(500).json({ error: "No se pudo guardar el Top Manual en Supabase." });
+          console.error('[DATABASE] Error insertando registro maestro (tops):', topError);
+          return res.status(500).json({ error: "No se pudo guardar el registro maestro del Top Manual." });
       }
 
       const topId = topRows[0].id;
-      if (!topId) {
-          console.error('create-top-manual: Insert exitoso pero no recibimos un ID');
-          return res.status(500).json({ error: "No se pudo guardar el Top Manual en Supabase." });
-      }
 
-      // 3. Insertar en top_products
-      const insertTopProducts = top5.map(p => ({
-         top_id: topId,
-         product_id: String(p.id || 'N/A'),
-         name: String(p.name || 'Sin nombre'),
-         category: p.category ? String(p.category) : null,
-         margin: (p.margin !== null && !isNaN(p.margin)) ? Number(p.margin) : 0,
-         stock: (p.stock !== null && !isNaN(p.stock)) ? parseInt(p.stock, 10) : 0,
-         status: 'in_test'
-      }));
+      // 3. Insertar en top_products (detalle)
+      const insertTopProducts = top5.map(p => {
+         // Limpiar y asegurar tipos de datos estrictos
+         const safeName = String(p.name || 'Sin nombre').substring(0, 255);
+         const safeProductId = String(p.id || p.product_id || 'N/A').substring(0, 50);
+         const safeMargin = (p.margin !== null && !isNaN(p.margin)) ? Number(p.margin) : 0;
+         const safeStock = (p.stock !== null && !isNaN(p.stock)) ? parseInt(p.stock, 10) : 0;
+
+         return {
+            top_id: topId,
+            product_id: safeProductId,
+            name: safeName,
+            category: p.category ? String(p.category).substring(0, 100) : null,
+            margin: safeMargin,
+            stock: safeStock,
+            status: 'in_test'
+         };
+      });
 
       const { error: prodError } = await supabase
         .from('top_products')
         .insert(insertTopProducts);
 
       if (prodError) {
-          console.error('create-top-manual: error insertando top_products', prodError);
-          // Opcional: Podrías borrar el 'top' recién creado aquí si quieres consistencia total
-          return res.status(500).json({ error: "No se pudo guardar el Top Manual en Supabase." });
+          console.error('[DATABASE] Error insertando detalle (top_products):', prodError);
+          // Si falla el detalle, el registro maestro ya quedó creado. 
+          // Retornamos error específico para diagnóstico.
+          return res.status(500).json({ error: "Fallo al vincular productos al Top Manual (Detalle)." });
       }
 
       // 4. Retornar éxito JSON
-      return res.status(200).json({ top_id: topId, count_products: top5.length });
+      return res.status(200).json({ 
+          top_id: topId, 
+          count_products: top5.length,
+          message: "Top Manual creado y vinculado exitosamente." 
+      });
     } catch (dbCrash) {
-      console.error("Crash fatal interactuando con Supabase BD:", dbCrash);
-      return res.status(500).json({ error: "No se pudo guardar el Top Manual en Supabase." });
+      console.error("[DATABASE CRASH]", dbCrash);
+      return res.status(500).json({ error: "Excepción fatal en la base de datos." });
     }
 
   } catch (fatalError) {
