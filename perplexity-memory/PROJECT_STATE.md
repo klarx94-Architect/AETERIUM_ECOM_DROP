@@ -1,72 +1,109 @@
 # AETERIUM ECOM DROP — Perplexity Memory
 
-Última actualización: 2026-04-14
+Última actualización: 2026-04-15 17:32 CEST
 
-## Infraestructura
-- Repositorio: klarx94-Architect/AETERIUM_ECOM_DROP
-- Rama activa de despliegue: master
-- Vercel project: aeterium-ecom-drop
-- Vercel project id: prj_lYRKh1iRSajkFnY7lLU7BoYQXBxk
-- Vercel team id: team_h4JhRvWvayMJYeKS0fRwU48u
+## 1. Infraestructura y estado actual
+- Repositorio: `klarx94-Architect/AETERIUM_ECOM_DROP`
+- Rama activa de despliegue: `master`
+- Vercel project: `aeterium-ecom-drop`
 - URL producción: https://aeterium-ecom-drop.vercel.app
-- Último deployment READY en producción: dpl_8WouUG9sjySUsQ1a5xy4vp53bJ29
+- `/` responde 200 y sirve el bundle Vite actual sin errores fatales visibles en la carga inicial.[cite:82]
 
-## Supabase
-- Proyecto: aeterium-prod dropea
-- Project id/ref: mqbarhsrcwqocpzkeplm
-- Región: eu-west-1
-- Tablas detectadas:
-  - public.products (5 filas)
-  - public.orders (3 filas)
-  - public.listings (2 filas)
-  - public.strategies (0 filas)
-- RLS activado en todas las tablas
-- Advertencia de seguridad: políticas anon_* demasiado permisivas (USING/WITH CHECK true) en products, orders, listings y strategies
+### Backend `/api`
+- Carpeta `/api` en la raíz con handlers serverless funcionales:
+  - `products.js` → catálogo Dropea + ordenación por margen + cacheo en Supabase.[file:79][cite:81]
+  - `guerrilla-intel.js` → lee últimos escaneos de `scans` en Supabase.[file:79]
+  - `scan-dynamic.js` → búsquedas dinámicas usando Gemini + catálogo.[file:79]
+  - `generate-strategy.js` → genera estrategias IA con Gemini.[file:79]
+  - `orders.js` → sincroniza pedidos con Dropea.[file:79]
+- Vercel está configurado para desplegar tanto el frontend estático como las funciones `/api` desde la raíz del repo (Root Directory = `/`).[file:79]
 
-## Hallazgos clave del código
-- El frontend real está en /frontend
-- El despliegue es un frontend React/Vite con páginas:
-  - frontend/src/pages/GuerrillaIntel.jsx
-  - frontend/src/pages/DropeaSync.jsx
-- El frontend NO consume Supabase directamente
-- El frontend consume endpoints serverless en /api
-- Los endpoints /api usan la API real de Dropea mediante dropea_connector.js
-- dropea_connector.js depende de process.env.DROPEA_API_KEY
-- GuerrillaIntel carga productos desde GET /api/products
-- GuerrillaIntel hace búsquedas dinámicas con POST /api/scan-dynamic
-- GuerrillaIntel genera estrategia IA con POST /api/generate-strategy
-- DropeaSync crea órdenes con POST /api/orders
+### Frontend
+- Frontend React/Vite en `/frontend`, empaquetado en `/dist`.
+- Página principal de operaciones: `frontend/src/pages/GuerrillaIntel.jsx`.
+- Estado actual de UI:
+  - La tabla principal consume `/api/products` y muestra productos reales (no mocks).[file:79][cite:81]
+  - Se han eliminado datos mock en las cards y ahora se calculan KPIs básicos (Stock Total y Beneficio Potencial) a partir de los productos reales.[file:79]
+  - El flujo de "Ver estrategia" todavía es frágil: la llamada a `/api/generate-strategy` puede devolver 500 y el frontend rompe al hacer `.split` sobre una respuesta `undefined`, dejando la pantalla negra.
 
-## Qué sí es mock o hardcoded
-- KPI cards del header en frontend/src/App.jsx están hardcodeadas:
-  - Margen Promedio €34.21
-  - Productos Activos 47
-  - Órdenes Pendientes 3
-  - Revenue Est. Hoy €171
-- Esos KPIs no vienen ni de Dropea ni de Supabase
+## 2. Supabase
+- Proyecto: `aeterium-prod` (Dropea)
+- Tablas existentes relevantes (resumen):
+  - `public.products`, `public.orders`, `public.listings`, `public.strategies` (y otras específicas del dominio).[file:79]
+- RLS: activado en tablas públicas, pero con políticas `anon_*` demasiado permisivas en algunos casos (USING/WITH CHECK = `true`).[file:79]
+- **Nuevo concepto a introducir**: tablas para gestión de tops (aún no creadas en el momento de esta actualización):
+  - `tops`
+  - `top_products`
 
-## Qué NO es mock
-- Tabla principal de Guerrilla Intel: usa /api/products y Dropea real
-- Búsqueda de productos: usa /api/scan-dynamic y Dropea real
-- Creación de órdenes: usa /api/orders y Dropea real
-- Estrategia IA: usa Gemini vía /api/generate-strategy
+## 3. Problemas conocidos
+- **Robustez de estrategia IA**
+  - `/api/generate-strategy` devuelve 500 en ciertos casos.
+  - El modal de "Ver estrategia" asume siempre una respuesta de texto válida y ejecuta `.split` sobre campos que pueden ser `undefined`, lo que dispara errores en el bundle y deja la pantalla en negro.
 
-## Causa probable de la confusión de datos
-- En Supabase existen datos seed/test, pero el frontend desplegado no los utiliza
-- El dashboard mezcla:
-  - KPIs hardcodeados
-  - Productos/órdenes desde API real Dropea
-- Por eso el sistema parece parcialmente real y parcialmente simulado
+- **Enlaces externos a Dropea**
+  - El botón "Ir al producto" desde el dashboard intenta abrir la ficha del producto en Dropea, pero en algunos casos la URL construida devuelve 404.
 
-## Próximas acciones recomendadas
-1. Sustituir KPIs hardcodeados por KPIs calculados desde endpoints reales
-2. Decidir una fuente única de verdad:
-   - opción A: Dropea como fuente principal y Supabase como cache/histórico
-   - opción B: Supabase como capa principal para dashboard y Dropea sólo para sync
-3. Verificar en Vercel que existan:
-   - DROPEA_API_KEY
-   - GEMINI_API_KEY
-4. Si se quiere usar Supabase en frontend, habrá que reescribir pages/hooks para leer de Supabase explícitamente
+- **RLS y seguridad**
+  - Aunque el panel lo usa actualmente un único usuario, dejar RLS mal definido o demasiado abierto puede ser problemático cuando se escale el uso.
+  - Es prioritario revisar y endurecer políticas una vez estabilizadas las nuevas tablas (`tops`, `top_products`, conversaciones, decisiones, etc.).
 
-## Nota operativa
-Antes de tocar arquitectura, revisar primero las variables de entorno reales en Vercel y confirmar qué fuente debe gobernar cada módulo.
+## 4. Fase en curso
+
+### Fase: Crear Top Manual (Top 5 por margen) + Sala de Guerra básica
+
+Objetivo de esta fase:
+- Introducir el concepto de `Top` y `Top Products` como primera unidad estratégica de trabajo.
+- Implementar:
+  1. Tablas `tops` y `top_products` en Supabase.
+  2. Endpoint `/api/create-top-manual` que:
+     - Llama a `/api/products`.
+     - Selecciona el Top 5 por margen.
+     - Inserta un registro en `tops` y 5 registros en `top_products`.
+  3. Un botón en el dashboard principal: **"Crear Top Manual (Top 5 por margen)"** que dispara el endpoint anterior.
+  4. Una vista básica tipo `/top/:id` (Sala de Guerra inicial) que muestra:
+     - Cabecera del top (nombre, tipo, estado).
+     - Tabla con productos del top.
+     - Un área placeholder para el futuro chat estratégico.
+
+Estado:
+- Diseño funcional definido en esta sesión (15/04/2026).
+- Pendiente de implementación por el agente (backend + frontend + SQL en Supabase), respetando la infraestructura existente.
+
+## 5. Próximas fases planificadas
+
+1. **Fase A – Robustez de "Ver estrategia"**
+   - Backend:
+     - Endurecer `/api/generate-strategy` para manejar errores de Gemini y devolver siempre JSON con estructura clara (`{ strategy: string }` en éxito, `{ error: string }` en fallo).[file:79]
+   - Frontend:
+     - Validar la respuesta antes de procesarla (no usar `.split` sobre valores no definidos).
+     - Mostrar estados de error amigables en el modal en lugar de romper la UI.
+     - Garantizar que el modal siempre se puede cerrar aunque la API falle.
+
+2. **Fase B – Selector de Top avanzado (briefing + alternativas)**
+   - Formulario de briefing en el dashboard principal para definir:
+     - Categoría, tipo de top (5/10/20), plataformas (marketplaces, redes, web + ads), objetivo del top.
+   - Nuevo flujo con modal que muestre 3 alternativas de top generadas por IA (combinaciones de productos + mini-estrategia + score de efectividad estimada).
+   - Botón "Ejecutar estrategia" que, al elegir una alternativa, cree el `top` y sus `top_products` en Supabase y redirija a la Sala de Guerra de ese top.
+
+3. **Fase C – Sala de Guerra completa por top**
+   - Vista dedicada por `top_id` que incluya:
+     - Cabecera con identidad del top y KPIs específicos (beneficio potencial, nº productos activos, etc.).
+     - Tabla de productos del top con estados (en prueba, ganador, perdedor, pausado).
+     - Chat persistente con un agente especializado en estrategia de ventas para ese top.
+     - Bloques estructurados:
+       - Plan de publicaciones por marketplace.
+       - Prompts de imágenes.
+       - Textos por canal (Wallapop, IG, WhatsApp, etc.).
+       - Historial de decisiones (pausar/escalar/matar productos o tops).
+
+4. **Fase D – RLS y seguridad reforzada**
+   - Activar y revisar RLS en todas las tablas nuevas (`tops`, `top_products`, conversaciones, decisiones) y ajustar las existentes.
+   - Asegurar que el frontend usa el rol `anon` con políticas restrictivas, y que cualquier proceso de backoffice/cron utiliza `service_role` según corresponda.[file:79][web:46]
+
+## 6. Notas operativas
+- Cualquier cambio de esquema de base de datos debe hacerse vía migraciones o scripts SQL explícitos y documentados aquí.
+- No se deben modificar ni eliminar funciones `/api` existentes sin documentar el cambio en este archivo.
+- La prioridad en el corto plazo es:
+  1. Consolidar el concepto de Top (fase en curso).
+  2. Robustecer el flujo de estrategia (`generate-strategy` + modal).
+  3. Endurecer RLS y seguridad antes de abrir el sistema a más usuarios.
