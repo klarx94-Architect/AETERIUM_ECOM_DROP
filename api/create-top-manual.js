@@ -1,26 +1,33 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_ANON_KEY
-);
+let supabase = null;
+try {
+  if (process.env.SUPABASE_URL && process.env.SUPABASE_ANON_KEY) {
+    supabase = createClient(
+      process.env.SUPABASE_URL,
+      process.env.SUPABASE_ANON_KEY
+    );
+  }
+} catch (err) {
+  console.error("Error top-level init Supabase en /api/create-top-manual:", err.message);
+}
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS');
-  
-  if (req.method === 'OPTIONS') return res.status(200).end();
-
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: "Method Not Allowed" });
-  }
-
+  // Enveloping whole handler to prevent unhandled explosions
   try {
-    if (!supabase || !process.env.SUPABASE_URL) {
-       throw new Error("Supabase is not configured.");
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS');
+    
+    if (req.method === 'OPTIONS') return res.status(200).end();
+
+    if (req.method !== 'POST') {
+      return res.status(405).json({ error: "Method Not Allowed" });
     }
 
-    // Usar llamada interna dinámica soportada en Vercel Edge/Lambdas
+    if (!supabase || !process.env.SUPABASE_URL) {
+        throw new Error("Supabase is not configured.");
+    }
+
     const protocol = req.headers['x-forwarded-proto'] || 'http';
     const host = req.headers.host || req.headers['x-vercel-deployment-url'];
     
@@ -31,20 +38,27 @@ export default async function handler(req, res) {
     const apiUrl = `${protocol}://${host}/api/products`;
     console.log("[TOP CREATOR] Lanzando petición a:", apiUrl);
 
-    const productReq = await fetch(apiUrl);
-    
-    if (!productReq.ok) {
-        throw new Error("No se pudo obtener el catálogo");
+    let products = [];
+    try {
+      const productReq = await fetch(apiUrl);
+      if (!productReq.ok) {
+          console.error(`create-top-manual: /api/products respondió ${productReq.status}`);
+          throw new Error("Products endpoint failed");
+      }
+      
+      const data = await productReq.json();
+      products = Array.isArray(data) ? data : [];
+    } catch (err) {
+      console.error('create-top-manual: error obteniendo productos', err.message);
+      return res.status(500).json({ error: 'No se pudo generar el Top Manual. Fallo en el endpoint fuente de productos.' });
     }
 
-    const products = await productReq.json();
-
-    if (!Array.isArray(products) || products.length === 0) {
-        throw new Error("Catálogo vacío o respuesta inválida.");
+    if (products.length === 0) {
+        return res.status(200).json({ error: 'No hay productos suficientes para Top Manual, el catálogo está vacío.' });
     }
 
     // 1. Obtener y asegurar orden por margen DESC, tomar Top 5
-    const top5 = products.sort((a, b) => b.margin - a.margin).slice(0, 5);
+    const top5 = products.sort((a, b) => (b.margin || 0) - (a.margin || 0)).slice(0, 5);
 
     // 2. Insertar en tabla tops
     const topName = `Top 5 manual – ${new Date().toISOString().split('T')[0]}`;
@@ -67,9 +81,9 @@ export default async function handler(req, res) {
        top_id: topId,
        product_id: String(p.id),
        name: p.name,
-       category: p.category,
-       margin: parseFloat(p.margin),
-       stock: parseInt(p.stock),
+       category: p.category || '',
+       margin: parseFloat(p.margin || 0),
+       stock: parseInt(p.stock || 0),
        status: 'in_test'
     }));
 
@@ -79,11 +93,11 @@ export default async function handler(req, res) {
 
     if (prodError) throw new Error("Error vinculando productos al top: " + prodError.message);
 
-    // 4. Retornar éxito
+    // 4. Retornar éxito JSON
     return res.status(200).json({ top_id: topId, count_products: top5.length });
 
   } catch (error) {
-    console.error("[TOP CREATOR ERROR]", error.message);
+    console.error("[TOP CREATOR GLOBAL ERROR]", error.message);
     return res.status(500).json({ error: error.message || "Error interno del servidor" });
   }
 }

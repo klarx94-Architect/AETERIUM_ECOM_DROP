@@ -81,10 +81,21 @@ export default function GuerrillaIntel() {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' }
             });
-            const data = await res.json();
             
-            if (!res.ok) {
-                throw new Error(data.error || "Falló la creación del top");
+            let data;
+            try {
+                data = await res.json();
+            } catch (err) {
+                console.error('Error parseando JSON de create-top-manual', err);
+                setCreateError('No se pudo crear el Top Manual. El servidor generó una respuesta inválida.');
+                setCreatingTop(false);
+                return;
+            }
+            
+            if (!res.ok || data.error) {
+                setCreateError(data?.error || "No se pudo crear el Top Manual");
+                setCreatingTop(false);
+                return;
             }
             
             // Navegar a la sala de guerra con el top recién creado
@@ -93,7 +104,7 @@ export default function GuerrillaIntel() {
             }
         } catch (err) {
             console.error(err);
-            setCreateError(err.message);
+            setCreateError("Fallo de red al intentar conectar con el analizador.");
         } finally {
             setCreatingTop(false);
         }
