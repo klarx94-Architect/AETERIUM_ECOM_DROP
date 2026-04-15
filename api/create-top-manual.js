@@ -67,31 +67,34 @@ export default async function handler(req, res) {
            name: topName,
            description: "Top 5 por margen construido desde catálogo actual",
            type: "top5",
-           category: null,
+           category: null, // Opcional según esquema
            status: "active"
       };
 
-      const { data: topData, error: topError } = await supabase
+      const { data: topRows, error: topError } = await supabase
         .from('tops')
         .insert([topPayload])
-        .select('id')
-        .single();
+        .select();
 
-      if (topError) {
-          console.error('create-top-manual: error insertando en tops', topError);
+      if (topError || !topRows || topRows.length === 0) {
+          console.error('create-top-manual: error insertando en tops', topError || 'No data returned');
           return res.status(500).json({ error: "No se pudo guardar el Top Manual en Supabase." });
       }
 
-      const topId = topData.id;
+      const topId = topRows[0].id;
+      if (!topId) {
+          console.error('create-top-manual: Insert exitoso pero no recibimos un ID');
+          return res.status(500).json({ error: "No se pudo guardar el Top Manual en Supabase." });
+      }
 
       // 3. Insertar en top_products
       const insertTopProducts = top5.map(p => ({
          top_id: topId,
-         product_id: String(p.id || p.product_id || 'N/A'),
+         product_id: String(p.id || 'N/A'),
          name: String(p.name || 'Sin nombre'),
          category: p.category ? String(p.category) : null,
-         margin: p.margin != null ? Number(p.margin) : null,
-         stock: p.stock != null ? parseInt(p.stock, 10) : null,
+         margin: (p.margin !== null && !isNaN(p.margin)) ? Number(p.margin) : 0,
+         stock: (p.stock !== null && !isNaN(p.stock)) ? parseInt(p.stock, 10) : 0,
          status: 'in_test'
       }));
 
@@ -101,6 +104,7 @@ export default async function handler(req, res) {
 
       if (prodError) {
           console.error('create-top-manual: error insertando top_products', prodError);
+          // Opcional: Podrías borrar el 'top' recién creado aquí si quieres consistencia total
           return res.status(500).json({ error: "No se pudo guardar el Top Manual en Supabase." });
       }
 
