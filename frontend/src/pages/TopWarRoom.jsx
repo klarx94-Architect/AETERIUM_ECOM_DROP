@@ -11,67 +11,60 @@ if (supabaseUrl && supabaseKey) {
   supabase = createClient(supabaseUrl, supabaseKey);
 }
 
-export default function TopWarRoom() {
-    const { id } = useParams();
-    const [top, setTop] = useState(null);
-    const [products, setProducts] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+    const [aiState, setAiState] = useState({
+        loading: false,
+        error: '',
+        content: ''
+    });
 
-    useEffect(() => {
-        if (!supabase) {
-            setError("No se detectó configuración de Supabase (VITE_SUPABASE_URL / ANON_KEY en el frontend). El acceso a la War Room requiere enlazar las variables en el entorno Vercel del Frontend.");
-            setLoading(false);
-            return;
-        }
+    const handleGenerateTopStrategy = async () => {
+        setAiState({ loading: true, error: '', content: '' });
+        try {
+            const res = await fetch('/api/strategy-for-top', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ top_id: id })
+            });
 
-        async function fetchWarRoom() {
+            let data;
             try {
-                // 1. Obtener Top
-                const { data: topData, error: topError } = await supabase
-                    .from('tops')
-                    .select('*')
-                    .eq('id', id)
-                    .single();
-                
-                if (topError) throw new Error("No se pudo cargar el Top (posible 404 o problema interno).");
-                setTop(topData);
-
-                // 2. Obtener productos de este top
-                const { data: prodData, error: prodError } = await supabase
-                    .from('top_products')
-                    .select('*')
-                    .eq('top_id', id)
-                    .order('margin', { ascending: false });
-
-                if (prodError) throw new Error("No se pudieron cargar los nodos estratégicos de este top.");
-                setProducts(prodData || []);
-
+                data = await res.json();
             } catch (err) {
-                setError(err.message);
-            } finally {
-                setLoading(false);
+                setAiState({
+                    loading: false,
+                    error: 'Respuesta inesperada del servidor IA.',
+                    content: ''
+                });
+                return;
             }
-        }
-        
-        fetchWarRoom();
-    }, [id]);
 
-    const calculatePotentialMargin = () => {
-        return products.reduce((acc, p) => {
-            const margin = parseFloat(p.margin) || 0;
-            const stock = parseInt(p.stock) || 0;
-            return acc + (margin * stock);
-        }, 0);
+            if (!res.ok || data.error) {
+                setAiState({
+                    loading: false,
+                    error: data.error || 'No se pudo generar la estrategia IA para este Top.',
+                    content: ''
+                });
+                return;
+            }
+
+            setAiState({
+                loading: false,
+                error: '',
+                content: data.strategy || ''
+            });
+
+        } catch (err) {
+            setAiState({
+                loading: false,
+                error: 'Error de conexión con el centro táctico IA.',
+                content: ''
+            });
+        }
     };
 
-    const formatDate = (dateString) => {
-        if (!dateString) return "—";
-        return new Date(dateString).toLocaleDateString('es-ES', {
-            day: '2-digit',
-            month: 'short',
-            year: 'numeric'
-        });
+    const copyToClipboard = (text) => {
+        navigator.clipboard.writeText(text);
+        alert("Estrategia copiada al portapapeles táctico.");
     };
 
     if (loading) {
@@ -163,31 +156,84 @@ export default function TopWarRoom() {
                     </div>
                 </div>
 
-                {/* Placeholder IA */}
-                <div className="guerrilla-card border-none bg-gradient-to-b from-white/5 to-transparent relative overflow-hidden flex flex-col min-h-[400px]">
+                {/* Panel Comandante IA Interactiva */}
+                <div className="guerrilla-card border-none bg-gradient-to-b from-white/5 to-transparent relative overflow-hidden flex flex-col min-h-[500px]">
                     <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
                         <Terminal size={120} />
                     </div>
                     
-                    <h3 className="text-sm font-black uppercase tracking-[0.2em] flex items-center gap-2 mb-6 text-aeterium-gold">
-                        <Zap size={16}/> Comandante IA
-                    </h3>
+                    <div className="flex items-center justify-between mb-6">
+                        <h3 className="text-sm font-black uppercase tracking-[0.2em] flex items-center gap-2 text-aeterium-gold">
+                            <Zap size={16}/> Comandante IA
+                        </h3>
+                        {aiState.content && (
+                            <button 
+                                onClick={() => copyToClipboard(aiState.content)}
+                                className="text-[10px] font-bold text-slate-400 hover:text-white uppercase tracking-tighter transition-colors border-b border-white/10"
+                            >
+                                Copiar Estrategia
+                            </button>
+                        )}
+                    </div>
                     
-                    <div className="flex-1 flex flex-col items-center justify-center text-center space-y-6 px-4">
-                        <div className="p-4 bg-aeterium-black rounded-xl border border-white/5 shadow-2xl relative">
-                            <span className="absolute -top-1.5 -right-1.5 w-3 h-3 bg-red-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.8)]"></span>
-                            <Zap size={24} className="text-aeterium-gold animate-pulse" />
-                        </div>
-                        <div>
-                            <p className="text-xs font-mono tracking-widest uppercase text-slate-400 mb-2">Módulo de Estrategia IA</p>
-                            <span className="text-[9px] bg-red-500/10 px-2 py-0.5 border border-red-500/20 rounded text-red-400 font-bold uppercase tracking-tighter italic">En Construcción</span>
-                        </div>
-                        <p className="text-[11px] text-slate-400 font-mono max-w-[240px] leading-relaxed italic">
-                            “Próxima fase: integración con Gemini para tácticas personalizadas sobre estos nodos tácticos.”
-                        </p>
-                        <div className="w-full bg-white/5 h-1 rounded-full overflow-hidden">
-                            <div className="bg-aeterium-gold h-full animate-[loading_2s_ease-in-out_infinite]" style={{ width: '40%' }}></div>
-                        </div>
+                    <div className="flex-1 flex flex-col">
+                        {!aiState.content && !aiState.loading && !aiState.error && (
+                            <div className="flex-1 flex flex-col items-center justify-center text-center space-y-6">
+                                <div className="p-6 bg-aeterium-black rounded-full border border-aeterium-gold/20 shadow-2xl relative">
+                                    <Zap size={32} className="text-aeterium-gold" />
+                                </div>
+                                <div className="space-y-2">
+                                    <h4 className="text-white font-black uppercase text-xs tracking-widest">Inteligencia Pendiente</h4>
+                                    <p className="text-[10px] text-slate-500 font-mono max-w-[200px] leading-relaxed">
+                                        Genera un plan de despliegue táctico basado en los {products.length} productos de este top.
+                                    </p>
+                                </div>
+                                <button 
+                                    onClick={handleGenerateTopStrategy}
+                                    className="px-6 py-3 bg-aeterium-gold text-aeterium-black font-black text-[10px] uppercase tracking-widest rounded-lg hover:bg-white transition-all shadow-gold"
+                                >
+                                    Generar Estrategia IA
+                                </button>
+                            </div>
+                        )}
+
+                        {aiState.loading && (
+                            <div className="flex-1 flex flex-col items-center justify-center text-center space-y-6">
+                                <Loader2 size={40} className="animate-spin text-aeterium-gold" />
+                                <div className="space-y-1">
+                                    <p className="text-xs font-mono text-white animate-pulse">Sincronizando con Gemini 1.5...</p>
+                                    <p className="text-[9px] text-slate-500 uppercase tracking-tighter">Procesando vectores de margen y stock</p>
+                                </div>
+                            </div>
+                        )}
+
+                        {aiState.error && (
+                            <div className="flex-1 flex flex-col items-center justify-center text-center p-6 bg-red-500/5 rounded-xl border border-red-500/20">
+                                < ShieldAlert size={32} className="text-red-500 mb-4" />
+                                <h4 className="text-red-500 font-black text-xs uppercase mb-2">Error Táctico</h4>
+                                <p className="text-[10px] text-red-200/60 font-mono mb-6">{aiState.error}</p>
+                                <button 
+                                    onClick={handleGenerateTopStrategy}
+                                    className="text-[10px] font-black text-white hover:text-aeterium-gold underline uppercase"
+                                >
+                                    Reintentar Conexión
+                                </button>
+                            </div>
+                        )}
+
+                        {aiState.content && (
+                            <div className="flex-1 bg-aeterium-black/40 rounded-xl border border-white/5 p-6 overflow-hidden flex flex-col relative group">
+                                <div className="flex-1 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-white/10">
+                                    <div className="prose prose-invert prose-xs font-mono text-[11px] leading-relaxed strategy-content">
+                                        {aiState.content.split('\n').map((line, i) => {
+                                            if (line.startsWith('##')) return <h4 key={i} className="text-aeterium-gold font-black mt-4 mb-2 uppercase tracking-wide border-b border-aeterium-gold/10 pb-1">{line.replace('##', '')}</h4>;
+                                            return <p key={i} className="mb-2 text-slate-300">{line}</p>;
+                                        })}
+                                    </div>
+                                </div>
+                                <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-aeterium-black to-transparent pointer-events-none opacity-50"></div>
+                            </div>
+                        )}
                     </div>
                 </div>
 
