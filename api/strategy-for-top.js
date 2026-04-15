@@ -16,10 +16,9 @@ try {
 
 // Configuración de Gemini con validación estable en v1
 const apiKey = process.env.GEMINI_API_KEY;
-// Usamos v1 para compatibilidad con Gemini 3 Flash
 const genAI = apiKey ? new GoogleGenerativeAI(apiKey, { apiVersion: "v1" }) : null;
-// Forzamos el uso de Gemini 3.0 Flash (identificador largo para mayor compatibilidad)
-const modelText = genAI ? genAI.getGenerativeModel({ model: "models/gemini-3.0-flash" }) : null;
+// Usamos gemini-1.5-pro para máxima estabilidad con el SDK legacy
+const modelText = genAI ? genAI.getGenerativeModel({ model: "gemini-1.5-pro" }) : null;
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') {

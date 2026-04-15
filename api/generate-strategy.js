@@ -7,7 +7,7 @@ const supabase = createClient(
 );
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "", { apiVersion: "v1" });
-const modelText = genAI.getGenerativeModel({ model: "models/gemini-3.0-flash" });
+const modelText = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') {

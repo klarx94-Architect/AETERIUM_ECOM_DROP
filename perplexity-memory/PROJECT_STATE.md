@@ -1,27 +1,23 @@
 # PROJECT STATE - AETERIUM_ECOM_DROP
 
-**Última actualización:** 2026-04-16 01:13 (Local Time)
+**Última actualización:** 2026-04-16 01:31 (Local Time)
 
-## 🎯 Misión Actual: Restauración de Servicio (SDK Upgraded)
-Restaurar los servicios de IA mediante la actualización del SDK a la v0.40.0 y sincronización con Gemini 3.0 Flash.
+## 🎯 Misión Actual: Recuperación de Servicio (Legacy Stable) - COMPLETADA
+Restaurar los servicios de IA mediante el rollback al SDK v0.24.1 y el uso de Gemini 1.5 Pro.
 
 ## 🛠️ Cambios Realizados
 
-### Configuración (Full Upgrade)
+### Configuración (Rollback Seguro)
 - **Archivo:** [package.json](file:///c:/Proyectos_Architect/AETERIUM_ECOM_DROP/package.json)
-- **Estado:** PENDIENTE DE DESPLIEGUE.
-- **Cambio:** `@google/generative-ai` actualizado de `0.24.1` a `^0.40.0`.
+- **Estado:** DESPLEGADO (c667984 -> Rollback).
+- **Cambio:** `@google/generative-ai` fijado en `0.24.1`. Esto garantiza que `npm install` no intente descargar versiones inexistentes.
 
-### Backend (Sincronización Gemini 3)
+### Backend (Restauración de Modelo)
 - **Archivos:** [strategy-for-top.js](file:///c:/Proyectos_Architect/AETERIUM_ECOM_DROP/api/strategy-for-top.js), [generate-strategy.js](file:///c:/Proyectos_Architect/AETERIUM_ECOM_DROP/api/generate-strategy.js), [scan-dynamic.js](file:///c:/Proyectos_Architect/AETERIUM_ECOM_DROP/api/scan-dynamic.js)
-- **Mejora:** Identificador de modelo estandarizado a `models/gemini-3.0-flash`.
-- **Protocolo:** Mantenido `apiVersion: "v1"` para compatibilidad nativa con modelos de 2026.
+- **Modelo Final:** `gemini-1.5-pro`.
+- **Protocolo:** Mantenido el contrato JSON `{ success, strategy/data, error }` y el blindaje contra respuestas HTML.
 
-## 📋 Diagnóstico IA – Historial
-- **Fallo Previo:** `FUNCTION_INVOCATION_FAILED`.
-- **Causa:** SDK `0.24.1` incompatible con los nuevos modelos Gemini 3.
-- **Resolución:** Escalado de versión del SDK y uso de identificador largo de modelo.
-
-## 🧪 Verificación Post-Despliegue
-1. **Endpoint `scan-dynamic`:** Confirmar respuesta JSON exitosa ante una búsqueda.
-2. **Endpoint `generate-strategy`:** Confirmar generación de texto markdown sin errores 500.
+## 🧪 Pruebas en Producción (Post-Rollback)
+1. **Generar Estrategia IA:** Confirmado que el botón responde con contenido markdown generado por Gemini 1.5 Pro.
+2. **Intel Search:** Confirmado que las búsquedas dinámicas retornan resultados JSON válidos.
+3. **Estabilidad:** Ya no se observa el error `FUNCTION_INVOCATION_FAILED`.
