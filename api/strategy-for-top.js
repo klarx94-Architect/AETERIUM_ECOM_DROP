@@ -18,27 +18,28 @@ try {
 const apiKey = process.env.GEMINI_API_KEY;
 // Forzamos la versión v1 de la API para evitar el error 404 en v1beta con gemini-1.5-flash
 const genAI = apiKey ? new GoogleGenerativeAI(apiKey, { apiVersion: "v1" }) : null;
+// Usamos el modelo en formato simple o con prefijo si falla, pero el estándar es el nombre directo
 const modelText = genAI ? genAI.getGenerativeModel({ model: "gemini-1.5-flash" }) : null;
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
-        return res.status(405).json({ error: "Method Not Allowed" });
+        return res.status(405).json({ success: false, error: "Method Not Allowed" });
     }
 
     try {
         const { top_id } = req.body;
         if (!top_id) {
-            return res.status(400).json({ error: 'top_id es requerido' });
+            return res.status(400).json({ success: false, error: 'top_id es requerido' });
         }
 
         if (!apiKey || !modelText) {
             console.error('[IA CONFIG ERROR] GEMINI_API_KEY is missing or SDK failed to init.');
-            return res.status(500).json({ error: 'Configuración IA incompleta: falta la API key de Gemini.' });
+            return res.status(500).json({ success: false, error: 'Configuración IA incompleta: falta la API key de Gemini o error de inicialización.' });
         }
 
         if (!supabase) {
             console.error('[DB CONFIG ERROR] Supabase credentials missing (SUPABASE_URL/ANON_KEY).');
-            return res.status(500).json({ error: "Supabase no está configurado en el servidor." });
+            return res.status(500).json({ success: false, error: "Supabase no está configurado en el servidor." });
         }
 
         // 1. Obtener Metadatos del Top
@@ -50,7 +51,7 @@ export default async function handler(req, res) {
 
         if (topError || !top) {
             console.error("[IA ERROR] Top no encontrado:", top_id, topError);
-            return res.status(404).json({ error: 'Top no encontrado' });
+            return res.status(404).json({ success: false, error: 'Top no encontrado en la base de datos.' });
         }
 
         // 2. Obtener Productos del Top
@@ -61,7 +62,7 @@ export default async function handler(req, res) {
 
         if (prodError) {
             console.error("[IA ERROR] Error obteniendo productos:", prodError);
-            return res.status(500).json({ error: 'Error al recuperar productos del Top para la IA.' });
+            return res.status(500).json({ success: false, error: 'Error al recuperar productos del Top para la IA.' });
         }
 
         // 3. Construir el Briefing para Gemini
@@ -116,10 +117,10 @@ Usa un tono profesional, militarizado pero pragmático. Cero relleno. Solo efect
         const strategyText = result.response.text();
 
         // 5. Retornar Respuesta
-        return res.status(200).json({ strategy: strategyText });
+        return res.status(200).json({ success: true, strategy: strategyText });
 
     } catch (e) {
         console.error("[IA GLOBAL ERROR]", e);
-        return res.status(500).json({ error: 'Fallo crítico en generación IA: ' + (e.message || 'Error desconocido') });
+        return res.status(500).json({ success: false, error: 'Fallo crítico en generación IA: ' + (e.message || 'Error desconocido') });
     }
 }

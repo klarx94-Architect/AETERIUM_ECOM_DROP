@@ -6,12 +6,12 @@ const supabase = createClient(
   process.env.SUPABASE_ANON_KEY
 );
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "", { apiVersion: "v1" });
 const modelText = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
-        return res.status(405).json({ error: "Method Not Allowed" });
+        return res.status(405).json({ success: false, error: "Method Not Allowed" });
     }
 
     try {
@@ -45,9 +45,9 @@ Escribe 3 prompts fotorrealistas en INGLÉS para generar imágenes lifestyle. Ej
             }]);
         }
 
-        res.status(200).json({ strategy: strategyText });
+        res.status(200).json({ success: true, strategy: strategyText });
     } catch(e) {
         console.error("[ERROR STRATEGY]", e.message);
-        res.status(500).json({ error: "Fallo generación IA: " + e.message });
+        res.status(500).json({ success: false, error: "Fallo generación IA: " + e.message });
     }
 }

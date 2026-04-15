@@ -101,10 +101,30 @@ export default function TopWarRoom() {
                 return;
             }
 
-            if (!res.ok || data.error) {
+            if (!res.ok) {
                 setAiState({
                     loading: false,
-                    error: data.error || 'No se pudo generar la estrategia IA para este Top.',
+                    error: data.error || `Error del servidor (${res.status}).`,
+                    content: ''
+                });
+                return;
+            }
+
+            if (data.success === false) {
+                setAiState({
+                    loading: false,
+                    error: data.error || 'La IA no pudo procesar la estrategia en este momento.',
+                    content: ''
+                });
+                return;
+            }
+
+            // Verificación defensiva del contenido
+            const strategyContent = data.strategy || '';
+            if (!strategyContent) {
+                setAiState({
+                    loading: false,
+                    error: 'La IA devolvió una respuesta vacía.',
                     content: ''
                 });
                 return;
@@ -113,7 +133,7 @@ export default function TopWarRoom() {
             setAiState({
                 loading: false,
                 error: '',
-                content: data.strategy || ''
+                content: strategyContent
             });
 
         } catch (err) {
