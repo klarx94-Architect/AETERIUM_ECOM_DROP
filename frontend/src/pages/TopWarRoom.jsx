@@ -57,6 +57,23 @@ export default function TopWarRoom() {
         fetchWarRoom();
     }, [id]);
 
+    const calculatePotentialMargin = () => {
+        return products.reduce((acc, p) => {
+            const margin = parseFloat(p.margin) || 0;
+            const stock = parseInt(p.stock) || 0;
+            return acc + (margin * stock);
+        }, 0);
+    };
+
+    const formatDate = (dateString) => {
+        if (!dateString) return "—";
+        return new Date(dateString).toLocaleDateString('es-ES', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric'
+        });
+    };
+
     if (loading) {
         return (
             <div className="flex flex-col items-center justify-center py-40 animate-in fade-in duration-500">
@@ -71,8 +88,8 @@ export default function TopWarRoom() {
             <div className="p-8 guerrilla-card max-w-2xl mx-auto border-red-500/20 bg-red-900/10">
                 <h3 className="text-red-500 font-black flex items-center gap-2 mb-2"><Shield size={18}/> ERROR DE DESPLIEGUE</h3>
                 <p className="text-sm font-mono text-red-200/70 mb-6">{error}</p>
-                <Link to="/" className="text-xs uppercase font-black text-aeterium-gold tracking-widest hover:underline flex items-center gap-1">
-                    <ArrowLeft size={14}/> Volver al Centro de Mando
+                <Link to="/tops" className="text-xs uppercase font-black text-aeterium-gold tracking-widest hover:underline flex items-center gap-1">
+                    <ArrowLeft size={14}/> Volver al Listado de Tops
                 </Link>
             </div>
         );
@@ -80,8 +97,8 @@ export default function TopWarRoom() {
 
     return (
         <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-500">
-            <Link to="/" className="text-xs uppercase font-black text-slate-500 hover:text-aeterium-gold tracking-widest flex items-center gap-1 mb-8 w-fit transition-colors">
-                <ArrowLeft size={14}/> Centro de Mando
+            <Link to="/tops" className="text-xs uppercase font-black text-slate-500 hover:text-aeterium-gold tracking-widest flex items-center gap-1 mb-8 w-fit transition-colors">
+                <ArrowLeft size={14}/> Volver al Listado
             </Link>
 
             <header className="guerrilla-card flex flex-col md:flex-row md:items-center justify-between gap-6 border-l-4 border-l-aeterium-gold">
@@ -92,14 +109,18 @@ export default function TopWarRoom() {
                     </h1>
                     <p className="text-sm text-slate-400 mt-2 font-mono">{top?.name || id}</p>
                 </div>
-                <div className="flex items-center gap-6">
-                    <div className="text-center">
-                        <div className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Tipo</div>
-                        <div className="font-mono text-white bg-white/5 border border-white/10 px-3 py-1 rounded mt-1">{top?.type}</div>
+                <div className="flex flex-wrap items-center gap-6">
+                    <div className="text-center min-w-[100px] border-r border-white/5 pr-6 last:border-0 last:pr-0">
+                        <div className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Generación</div>
+                        <div className="font-mono text-white text-xs mt-1">{formatDate(top?.created_at)}</div>
                     </div>
-                    <div className="text-center">
+                    <div className="text-center min-w-[80px] border-r border-white/5 pr-6 last:border-0 last:pr-0">
                         <div className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Nodos</div>
                         <div className="font-mono text-aeterium-gold text-lg mt-0.5">{products.length}</div>
+                    </div>
+                    <div className="text-center min-w-[120px]">
+                        <div className="text-[10px] text-aeterium-gold uppercase tracking-widest font-bold">Efectivo Total</div>
+                        <div className="font-mono text-white text-lg mt-0.5">€{calculatePotentialMargin().toLocaleString('es-ES', { minimumFractionDigits: 2 })}</div>
                     </div>
                 </div>
             </header>
@@ -121,17 +142,20 @@ export default function TopWarRoom() {
                                     </div>
                                     <div>
                                         <h4 className="text-sm font-bold text-slate-200 line-clamp-1">{p.name}</h4>
-                                        <div className="text-[10px] font-mono text-slate-500 mt-1 uppercase">ID: {p.product_id}</div>
+                                        <div className="flex items-center gap-3 mt-1">
+                                            <div className="text-[10px] font-mono text-slate-500 uppercase">ID: {p.product_id}</div>
+                                            <div className="text-[10px] font-mono text-aeterium-gold/60 uppercase">CAT: {p.category || '—'}</div>
+                                        </div>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-6 text-right shrink-0">
                                    <div>
                                        <div className="text-[10px] text-slate-500 tracking-widest uppercase mb-0.5">Stock</div>
-                                       <div className="text-xs font-mono font-bold text-emerald-400">{p.stock}</div>
+                                       <div className="text-xs font-mono font-bold text-emerald-400">{parseInt(p.stock) || 0}</div>
                                    </div>
                                    <div>
                                        <div className="text-[10px] text-aeterium-gold tracking-widest uppercase mb-0.5">Margen</div>
-                                       <div className="text-sm font-mono font-black text-white">€{parseFloat(p.margin).toFixed(2)}</div>
+                                       <div className="text-sm font-mono font-black text-white">€{parseFloat(p.margin || 0).toFixed(2)}</div>
                                    </div>
                                 </div>
                             </div>
@@ -140,7 +164,7 @@ export default function TopWarRoom() {
                 </div>
 
                 {/* Placeholder IA */}
-                <div className="guerrilla-card border-none bg-gradient-to-b from-white/5 to-transparent relative overflow-hidden flex flex-col">
+                <div className="guerrilla-card border-none bg-gradient-to-b from-white/5 to-transparent relative overflow-hidden flex flex-col min-h-[400px]">
                     <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
                         <Terminal size={120} />
                     </div>
@@ -149,18 +173,21 @@ export default function TopWarRoom() {
                         <Zap size={16}/> Comandante IA
                     </h3>
                     
-                    <div className="flex-1 flex flex-col items-center justify-center text-center space-y-4">
+                    <div className="flex-1 flex flex-col items-center justify-center text-center space-y-6 px-4">
                         <div className="p-4 bg-aeterium-black rounded-xl border border-white/5 shadow-2xl relative">
                             <span className="absolute -top-1.5 -right-1.5 w-3 h-3 bg-red-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.8)]"></span>
-                            <Terminal size={24} className="text-slate-600" />
+                            <Zap size={24} className="text-aeterium-gold animate-pulse" />
                         </div>
                         <div>
-                            <p className="text-xs font-mono tracking-widest uppercase text-slate-400 mb-1">Chat Estratégico</p>
-                            <span className="text-[10px] bg-white/5 px-2 py-0.5 border border-white/5 rounded text-white">(En Construcción)</span>
+                            <p className="text-xs font-mono tracking-widest uppercase text-slate-400 mb-2">Módulo de Estrategia IA</p>
+                            <span className="text-[9px] bg-red-500/10 px-2 py-0.5 border border-red-500/20 rounded text-red-400 font-bold uppercase tracking-tighter italic">En Construcción</span>
                         </div>
-                        <p className="text-[10.5px] text-slate-500 font-mono mt-4 max-w-[200px] leading-relaxed">
-                            Inicializando subrutinas conversacionales para análisis de la tabla actual. Espere parche de integración.
+                        <p className="text-[11px] text-slate-400 font-mono max-w-[240px] leading-relaxed italic">
+                            “Próxima fase: integración con Gemini para tácticas personalizadas sobre estos nodos tácticos.”
                         </p>
+                        <div className="w-full bg-white/5 h-1 rounded-full overflow-hidden">
+                            <div className="bg-aeterium-gold h-full animate-[loading_2s_ease-in-out_infinite]" style={{ width: '40%' }}></div>
+                        </div>
                     </div>
                 </div>
 

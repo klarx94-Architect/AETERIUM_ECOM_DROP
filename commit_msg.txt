@@ -1,5 +1,0 @@
-fix: hardening create-top-manual and error UI
-
-- Enveloped init and logic of /api/create-top-manual inside try/catches to avoid FUNCTION_INVOCATION_FAILED (500 HTML).
-- Added reliable JSON responses on failures with custom status messages.
-- Strengthened frontend handleCreateTop to safely parse JSON and expose friendly error messages if response fails.

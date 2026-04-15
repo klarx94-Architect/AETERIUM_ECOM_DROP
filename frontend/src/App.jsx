@@ -1,14 +1,16 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
-import { Shield, Zap, LayoutGrid, Settings, BarChart3 } from 'lucide-react';
+import { Shield, Zap, LayoutGrid, Settings, BarChart3, Sparkles } from 'lucide-react';
 import GuerrillaIntel from './pages/GuerrillaIntel';
 import DropeaSync from './pages/DropeaSync';
 import TopWarRoom from './pages/TopWarRoom';
+import TopList from './pages/TopList';
 
 function Sidebar() {
   const location = useLocation();
   const links = [
     { to: '/', icon: <Zap size={18} />, label: 'Guerrilla Intel', live: true },
+    { to: '/tops', icon: <Sparkles size={18} />, label: 'Tops / Sala de Guerra' },
     { to: '/sync', icon: <LayoutGrid size={18} />, label: 'Dropea Sync' },
     { to: '/analytics', icon: <BarChart3 size={18} />, label: 'Analytics', disabled: true },
     { to: '/config', icon: <Settings size={18} />, label: 'Configuración' },
@@ -96,6 +98,7 @@ export default function App() {
           <div className="p-10 max-w-7xl mx-auto">
             <Routes>
               <Route path="/" element={<GuerrillaIntel />} />
+              <Route path="/tops" element={<TopList />} />
               <Route path="/sync" element={<DropeaSync />} />
               <Route path="/top/:id" element={<TopWarRoom />} />
             </Routes>
