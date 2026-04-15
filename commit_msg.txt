@@ -1,7 +1,7 @@
-fix: restore war room functionality and activate AI commander
+fix: unify Gemini config and enhance AI diagnostic logging
 
-- Adhering to the new incremental change policy.
-- Restored missing imports (ShieldAlert) and internal state in TopWarRoom.jsx.
-- Re-instituted data fetching logic from Supabase that was lost.
-- Connected the AI Commander panel to the /api/strategy-for-top service.
-- Ensured all icons and hooks are correctly imported to avoid build failures.
+- Aligned GEMINI_API_KEY usage with generate-strategy.js.
+- Added explicit check for API key with descriptive 500 error.
+- Expanded console.error to log the full object 'e' for Vercel debugging.
+- Added Supabase environment variable fallback (VITE_ vs standard).
+- Ensured JSON response in all catch blocks.

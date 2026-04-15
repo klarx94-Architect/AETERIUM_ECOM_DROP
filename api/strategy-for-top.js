@@ -1,21 +1,23 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { createClient } from '@supabase/supabase-js';
 
-// Inicialización defensiva de Supabase
+// Inicialización de Supabase con fallback flexible
 let supabase = null;
 try {
-  if (process.env.VITE_SUPABASE_URL && process.env.VITE_SUPABASE_ANON_KEY) {
-    supabase = createClient(
-      process.env.VITE_SUPABASE_URL,
-      process.env.VITE_SUPABASE_ANON_KEY
-    );
+  const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+
+  if (supabaseUrl && supabaseKey) {
+    supabase = createClient(supabaseUrl, supabaseKey);
   }
 } catch (err) {
-  console.error("Error top-level init Supabase en /api/strategy-for-top:", err.message);
+  console.error("Error top-level init Supabase en /api/strategy-for-top:", err);
 }
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
-const modelText = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+// Configuración de Gemini con validación explícita
+const apiKey = process.env.GEMINI_API_KEY;
+const genAI = apiKey ? new GoogleGenerativeAI(apiKey) : null;
+const modelText = genAI ? genAI.getGenerativeModel({ model: "gemini-1.5-flash" }) : null;
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
@@ -28,7 +30,13 @@ export default async function handler(req, res) {
             return res.status(400).json({ error: 'top_id es requerido' });
         }
 
+        if (!apiKey || !modelText) {
+            console.error('[IA CONFIG ERROR] GEMINI_API_KEY is missing or SDK failed to init.');
+            return res.status(500).json({ error: 'Configuración IA incompleta: falta la API key de Gemini.' });
+        }
+
         if (!supabase) {
+            console.error('[DB CONFIG ERROR] Supabase credentials missing (SUPABASE_URL/ANON_KEY).');
             return res.status(500).json({ error: "Supabase no está configurado en el servidor." });
         }
 
@@ -110,7 +118,7 @@ Usa un tono profesional, militarizado pero pragmático. Cero relleno. Solo efect
         return res.status(200).json({ strategy: strategyText });
 
     } catch (e) {
-        console.error("[IA GLOBAL ERROR]", e.message);
-        return res.status(500).json({ error: 'No se pudo generar la estrategia IA para este Top.' });
+        console.error("[IA GLOBAL ERROR]", e);
+        return res.status(500).json({ error: 'Fallo crítico en generación IA: ' + (e.message || 'Error desconocido') });
     }
 }
