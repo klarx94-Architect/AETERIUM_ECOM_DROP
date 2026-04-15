@@ -9,7 +9,7 @@ const supabase = createClient(
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "", { apiVersion: "v1" });
 const modelFilter = genAI.getGenerativeModel({ 
-    model: "gemini-3-flash", 
+    model: "models/gemini-3.0-flash", 
     generationConfig: { responseMimeType: "application/json" } 
 });
 
