@@ -1,5 +1,3 @@
-import { createClient } from '@supabase/supabase-js';
-
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
         return res.status(405).json({ success: false, error: 'Método no permitido' });
@@ -7,33 +5,23 @@ export default async function handler(req, res) {
 
     try {
         const { top_id } = req.body;
-        if (!top_id) {
-            return res.status(400).json({ success: false, error: 'ID del Top es requerido.' });
-        }
-
         const apiKey = process.env.GEMINI_API_KEY;
-        const supabaseUrl = process.env.SUPABASE_URL;
-        const supabaseKey = process.env.SUPABASE_ANON_KEY;
-
+        if (!top_id) return res.status(400).json({ success: false, error: 'ID del Top es requerido.' });
         if (!apiKey) return res.status(500).json({ success: false, error: 'Falta Gemini API Key.' });
-        if (!supabaseUrl || !supabaseKey) return res.status(500).json({ success: false, error: 'Configuración Supabase incompleta.' });
 
-        // Inicialización INTERNA
-        const supabase = createClient(supabaseUrl, supabaseKey);
+        // 1. DYNAMIC IMPORT para Supabase
+        const { createClient } = await import('@supabase/supabase-js');
+        const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
 
-        // 1. Obtener Metadatos del Top y Productos
         const { data: top, error: topError } = await supabase
             .from('tops')
             .select('*, top_products(*)')
             .eq('id', top_id)
             .maybeSingle();
 
-        if (topError || !top) {
-            return res.status(404).json({ success: false, error: 'Top no encontrado.' });
-        }
+        if (topError || !top) return res.status(404).json({ success: false, error: 'Top no encontrado.' });
 
         const products = top.top_products || [];
-
         const prompt = `Estrategia de marketing para el Top: ${top.name}. Productos: ${products.map(p => p.name).join(', ')}`;
 
         // 2. Llamada Directa REST (Gemini 3 Flash)
@@ -48,10 +36,7 @@ export default async function handler(req, res) {
             })
         });
 
-        if (!geminiRes.ok) {
-            const errorBody = await geminiRes.text();
-            throw new Error(`Gemini Error: ${geminiRes.status} - ${errorBody}`);
-        }
+        if (!geminiRes.ok) throw new Error(`Gemini API Error: ${geminiRes.status}`);
 
         const resultJson = await geminiRes.json();
         const strategyText = resultJson.candidates?.[0]?.content?.parts?.[0]?.text || "No se pudo generar estrategia.";

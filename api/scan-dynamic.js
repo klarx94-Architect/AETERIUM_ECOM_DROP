@@ -1,5 +1,4 @@
 import { dropeaQuery } from '../dropea_connector.js';
-import { createClient } from '@supabase/supabase-js';
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
@@ -13,15 +12,15 @@ export default async function handler(req, res) {
         const supabaseKey = process.env.SUPABASE_ANON_KEY;
 
         if (!apiKey) throw new Error("GEMINI_API_KEY missing");
-        if (!supabaseUrl || !supabaseKey) throw new Error("Supabase config missing");
 
-        // Inicialización INTERNA para evitar crasheos de bootstrap
+        // 1. DYNAMIC IMPORT para Supabase para evitar crasheos de bootstrap
+        const { createClient } = await import('@supabase/supabase-js');
         const supabase = createClient(supabaseUrl, supabaseKey);
 
         let filters = { minStock: 0, minMargin: 0, keyword: "" };
 
         if (prompt && prompt.trim() !== "") {
-            const systemPrompt = `Extrae filtros JSON: minStock, minMargin, keyword de: "${prompt}". Responde solo JSON.`;
+            // Gemini 3 Flash REST v1
             const model = "gemini-3-flash";
             const url = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`;
 
@@ -29,7 +28,7 @@ export default async function handler(req, res) {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    contents: [{ parts: [{ text: systemPrompt }] }],
+                    contents: [{ parts: [{ text: `Extrae filtros JSON: minStock, minMargin, keyword de: "${prompt}". Responde solo JSON.` }] }],
                     generationConfig: { responseMimeType: "application/json" }
                 })
             });
@@ -39,9 +38,10 @@ export default async function handler(req, res) {
                 const jsonText = resultJson.candidates?.[0]?.content?.parts?.[0]?.text;
                 if (jsonText) {
                     try {
-                        const parsed = JSON.parse(jsonText);
-                        filters = { ...filters, ...parsed };
-                    } catch (e) { console.warn("Parse error", e); }
+                        filters = { ...filters, ...JSON.parse(jsonText) };
+                    } catch (e) {
+                        console.warn("IA Parse error", jsonText);
+                    }
                 }
             }
         }
