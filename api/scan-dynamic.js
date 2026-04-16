@@ -8,8 +8,8 @@ export default async function handler(req, res) {
     try {
         const { prompt } = req.body;
         const apiKey = process.env.GEMINI_API_KEY;
-        const supabaseUrl = process.env.SUPABASE_URL;
-        const supabaseKey = process.env.SUPABASE_ANON_KEY;
+        const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+        const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
 
         if (!apiKey) throw new Error("GEMINI_API_KEY missing");
 
