@@ -9,14 +9,13 @@ export default async function handler(req, res) {
         const apiKey = process.env.GEMINI_API_KEY;
         if (!apiKey) throw new Error("Falta Gemini API Key.");
 
-        // Inicialización interna de Supabase (aunque no se use directamente aquí ahora, previene errores de importación/bootstrap en el futuro)
         const { name, category, cost, pvp, margin } = req.body;
         console.log(`[STRATEGY AI] Generando reporte para: ${name}`);
 
         const prompt = `Reporte estratégico para: ${name}. Categoría: ${category}. Margen: ${margin}`;
 
-        // Llamada Directa REST (Gemini 3 Flash)
-        const model = "gemini-3-flash";
+        // Llamada Directa REST (Gemini 3.1 Flash - Stable 2026)
+        const model = "gemini-3.1-flash";
         const url = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`;
 
         const geminiRes = await fetch(url, {

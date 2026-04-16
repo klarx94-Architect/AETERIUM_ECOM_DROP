@@ -8,20 +8,21 @@ export default async function handler(req, res) {
     try {
         const { prompt } = req.body;
         const apiKey = process.env.GEMINI_API_KEY;
-        const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-        const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
 
         if (!apiKey) throw new Error("GEMINI_API_KEY missing");
 
-        // 1. DYNAMIC IMPORT para Supabase para evitar crasheos de bootstrap
+        // 1. DYNAMIC IMPORT para Supabase
         const { createClient } = await import('@supabase/supabase-js');
-        const supabase = createClient(supabaseUrl, supabaseKey);
+        const supabase = createClient(
+            process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL, 
+            process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY
+        );
 
         let filters = { minStock: 0, minMargin: 0, keyword: "" };
 
         if (prompt && prompt.trim() !== "") {
-            // Gemini 3 Flash REST v1
-            const model = "gemini-3-flash";
+            // Gemini 3.1 Flash REST v1 (Verified for 2026)
+            const model = "gemini-3.1-flash";
             const url = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`;
 
             const geminiRes = await fetch(url, {
