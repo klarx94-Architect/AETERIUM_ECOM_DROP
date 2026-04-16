@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 
+// BUILD TRIGGER: 2026-04-16T00:33Z - Forced Redeploy (Gemini 3.1 Flash)
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
         return res.status(405).json({ success: false, error: "Method Not Allowed" });

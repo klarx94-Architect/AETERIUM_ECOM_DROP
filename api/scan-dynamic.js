@@ -1,5 +1,6 @@
 import { dropeaQuery } from '../dropea_connector.js';
 
+// BUILD TRIGGER: 2026-04-16T00:33Z - Forced Redeploy (Gemini 3.1 Flash)
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
         return res.status(405).json({ success: false, error: "Method Not Allowed" });
@@ -21,7 +22,7 @@ export default async function handler(req, res) {
         let filters = { minStock: 0, minMargin: 0, keyword: "" };
 
         if (prompt && prompt.trim() !== "") {
-            // Gemini 3.1 Flash REST v1 (Verified for 2026)
+            // Gemini 3.1 Flash REST v1
             const model = "gemini-3.1-flash";
             const url = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`;
 
@@ -40,9 +41,7 @@ export default async function handler(req, res) {
                 if (jsonText) {
                     try {
                         filters = { ...filters, ...JSON.parse(jsonText) };
-                    } catch (e) {
-                        console.warn("IA Parse error", jsonText);
-                    }
+                    } catch (e) { console.warn("IA Parse error", jsonText); }
                 }
             }
         }
