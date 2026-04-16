@@ -1,6 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
-
-// BUILD TRIGGER: 2026-04-16T00:33Z - Forced Redeploy (Gemini 3.1 Flash)
+// BUILD TRIGGER: 2026-04-16T00:43Z - Verified Model Resolution (Gemini 2.5 Flash)
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
         return res.status(405).json({ success: false, error: "Method Not Allowed" });
@@ -15,8 +13,8 @@ export default async function handler(req, res) {
 
         const prompt = `Reporte estratégico para: ${name}. Categoría: ${category}. Margen: ${margin}`;
 
-        // Llamada Directa REST (Gemini 3.1 Flash - Stable 2026)
-        const model = "gemini-3.1-flash";
+        // Llamada Directa REST (Gemini 2.5 Flash - Verified Stable 2026)
+        const model = "gemini-2.5-flash";
         const url = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`;
 
         const geminiRes = await fetch(url, {

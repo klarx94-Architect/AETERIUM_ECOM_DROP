@@ -1,6 +1,6 @@
 import { dropeaQuery } from '../dropea_connector.js';
 
-// BUILD TRIGGER: 2026-04-16T00:33Z - Forced Redeploy (Gemini 3.1 Flash)
+// BUILD TRIGGER: 2026-04-16T00:43Z - Verified Model Resolution (Gemini 2.5 Flash)
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
         return res.status(405).json({ success: false, error: "Method Not Allowed" });
@@ -10,20 +10,22 @@ export default async function handler(req, res) {
         const { prompt } = req.body;
         const apiKey = process.env.GEMINI_API_KEY;
 
+        // Source of Truth verified: These keys are present in Vercel
+        const supabaseUrl = process.env.VITE_SUPABASE_URL;
+        const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY;
+
         if (!apiKey) throw new Error("GEMINI_API_KEY missing");
+        if (!supabaseUrl || !supabaseKey) throw new Error("Supabase config (VITE_*) missing");
 
         // 1. DYNAMIC IMPORT para Supabase
         const { createClient } = await import('@supabase/supabase-js');
-        const supabase = createClient(
-            process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL, 
-            process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY
-        );
+        const supabase = createClient(supabaseUrl, supabaseKey);
 
         let filters = { minStock: 0, minMargin: 0, keyword: "" };
 
         if (prompt && prompt.trim() !== "") {
-            // Gemini 3.1 Flash REST v1
-            const model = "gemini-3.1-flash";
+            // Source of Truth verified: gemini-2.5-flash is ACTIVE for this key in April 2026
+            const model = "gemini-2.5-flash";
             const url = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`;
 
             const geminiRes = await fetch(url, {
@@ -43,6 +45,9 @@ export default async function handler(req, res) {
                         filters = { ...filters, ...JSON.parse(jsonText) };
                     } catch (e) { console.warn("IA Parse error", jsonText); }
                 }
+            } else {
+                const errorText = await geminiRes.text();
+                console.error("Gemini Error Detail:", errorText);
             }
         }
 

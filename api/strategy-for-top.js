@@ -1,4 +1,4 @@
-// BUILD TRIGGER: 2026-04-16T00:33Z - Forced Redeploy (Gemini 3.1 Flash)
+// BUILD TRIGGER: 2026-04-16T00:43Z - Verified Model Resolution (Gemini 2.5 Flash)
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
         return res.status(405).json({ success: false, error: 'Método no permitido' });
@@ -7,12 +7,12 @@ export default async function handler(req, res) {
     try {
         const { top_id } = req.body;
         const apiKey = process.env.GEMINI_API_KEY;
-        const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-        const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+        const supabaseUrl = process.env.VITE_SUPABASE_URL;
+        const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY;
 
         if (!top_id) return res.status(400).json({ success: false, error: 'ID del Top es requerido.' });
         if (!apiKey) return res.status(500).json({ success: false, error: 'Falta Gemini API Key.' });
-        if (!supabaseUrl || !supabaseKey) return res.status(500).json({ success: false, error: 'Configuración de datos no detectada.' });
+        if (!supabaseUrl || !supabaseKey) return res.status(500).json({ success: false, error: 'Configuración Supabase (VITE_*) missing' });
 
         // 1. DYNAMIC IMPORT para Supabase
         const { createClient } = await import('@supabase/supabase-js');
@@ -29,8 +29,8 @@ export default async function handler(req, res) {
         const products = top.top_products || [];
         const prompt = `Estrategia de marketing para el Top: ${top.name}. Productos: ${products.map(p => p.name).join(', ')}`;
 
-        // 2. Llamada Directa REST (Gemini 3.1 Flash - Stable 2026)
-        const model = "gemini-3.1-flash";
+        // 2. Llamada Directa REST (Gemini 2.5 Flash - Verified Stable 2026)
+        const model = "gemini-2.5-flash";
         const url = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`;
 
         const geminiRes = await fetch(url, {
