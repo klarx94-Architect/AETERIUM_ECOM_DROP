@@ -1,10 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_ANON_KEY
-);
-
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
         return res.status(405).json({ success: false, error: "Method Not Allowed" });
@@ -12,32 +7,15 @@ export default async function handler(req, res) {
 
     try {
         const apiKey = process.env.GEMINI_API_KEY;
-        if (!apiKey) {
-            return res.status(500).json({ success: false, error: "Falta Gemini API Key." });
-        }
+        if (!apiKey) throw new Error("Falta Gemini API Key.");
 
+        // Inicialización interna de Supabase (aunque no se use directamente aquí ahora, previene errores de importación/bootstrap en el futuro)
         const { name, category, cost, pvp, margin } = req.body;
         console.log(`[STRATEGY AI] Generando reporte para: ${name}`);
 
-        const prompt = `
-        Genera un reporte estratégico de ventas para un producto de Dropshipping.
-        
-        PRODUCTO: ${name}
-        CATEGORÍA: ${category}
-        COSTO: ${cost}
-        PVP: ${pvp}
-        MARGEN: ${margin}
+        const prompt = `Reporte estratégico para: ${name}. Categoría: ${category}. Margen: ${margin}`;
 
-        El reporte debe incluir:
-        - Análisis de viabilidad.
-        - 3 Estrategias de marketing.
-        - Público objetivo.
-        - Copy sugerido para anuncio.
-        
-        Formato: Markdown.
-        `;
-
-        // Llamada Directa a Gemini vía REST (Gemini 3 Flash)
+        // Llamada Directa REST (Gemini 3 Flash)
         const model = "gemini-3-flash";
         const url = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`;
 
@@ -49,10 +27,7 @@ export default async function handler(req, res) {
             })
         });
 
-        if (!geminiRes.ok) {
-            const errorBody = await geminiRes.text();
-            throw new Error(`Error API Gemini REST: ${geminiRes.status} - ${errorBody}`);
-        }
+        if (!geminiRes.ok) throw new Error(`Gemini Error: ${geminiRes.status}`);
 
         const resultJson = await geminiRes.json();
         const strategy = resultJson.candidates?.[0]?.content?.parts?.[0]?.text || "No se pudo generar la estrategia.";
@@ -60,7 +35,7 @@ export default async function handler(req, res) {
         return res.status(200).json({ success: true, strategy });
 
     } catch (error) {
-        console.error("Error en generate-strategy IA:", error);
+        console.error("Error generate-strategy:", error);
         return res.status(500).json({ success: false, error: error.message });
     }
 }

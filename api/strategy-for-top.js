@@ -1,18 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Inicialización de Supabase con fallback flexible
-let supabase = null;
-try {
-  const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-  const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
-
-  if (supabaseUrl && supabaseKey) {
-    supabase = createClient(supabaseUrl, supabaseKey);
-  }
-} catch (err) {
-  console.error("Error top-level init Supabase en /api/strategy-for-top:", err);
-}
-
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
         return res.status(405).json({ success: false, error: 'Método no permitido' });
@@ -25,13 +12,14 @@ export default async function handler(req, res) {
         }
 
         const apiKey = process.env.GEMINI_API_KEY;
-        if (!apiKey) {
-            return res.status(500).json({ success: false, error: 'Configuración IA incompleta: falta la API key de Gemini.' });
-        }
+        const supabaseUrl = process.env.SUPABASE_URL;
+        const supabaseKey = process.env.SUPABASE_ANON_KEY;
 
-        if (!supabase) {
-            return res.status(500).json({ success: false, error: "Supabase no está configurado en el servidor." });
-        }
+        if (!apiKey) return res.status(500).json({ success: false, error: 'Falta Gemini API Key.' });
+        if (!supabaseUrl || !supabaseKey) return res.status(500).json({ success: false, error: 'Configuración Supabase incompleta.' });
+
+        // Inicialización INTERNA
+        const supabase = createClient(supabaseUrl, supabaseKey);
 
         // 1. Obtener Metadatos del Top y Productos
         const { data: top, error: topError } = await supabase
@@ -41,43 +29,14 @@ export default async function handler(req, res) {
             .maybeSingle();
 
         if (topError || !top) {
-            return res.status(404).json({ success: false, error: 'Top no encontrado en la base de datos.' });
+            return res.status(404).json({ success: false, error: 'Top no encontrado.' });
         }
 
         const products = top.top_products || [];
 
-        // 2. Construir el Briefing para Gemini
-        const briefing = {
-            top: { 
-                name: top.name, 
-                type: top.type, 
-                created_at: top.created_at,
-                description: top.description
-            },
-            products: products.map(p => ({
-                name: p.name,
-                category: p.category,
-                margin: p.margin,
-                stock: p.stock
-            }))
-        };
+        const prompt = `Estrategia de marketing para el Top: ${top.name}. Productos: ${products.map(p => p.name).join(', ')}`;
 
-        const prompt = `
-Eres el Comandante de Inteligencia Táctica de AETERIUM. 
-Has recibido un lote estratégico de ${products.length} productos de alto margen.
-
-CONTEXTO:
-- Nombre: "${briefing.top.name}"
-- Tipo: ${briefing.top.type}
-
-NODOS DE VALOR:
-${briefing.products.map((p, i) => `${i+1}. ${p.name} - Margen: €${p.margin}`).join('\n')}
-
-TU MISIÓN:
-Genera una estrategia de marketing agresiva en Markdown.
-        `;
-
-        // 3. Llamada Directa REST (Usando Gemini 3 Flash, modelo estable de 2026)
+        // 2. Llamada Directa REST (Gemini 3 Flash)
         const model = "gemini-3-flash";
         const url = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`;
 
@@ -91,7 +50,7 @@ Genera una estrategia de marketing agresiva en Markdown.
 
         if (!geminiRes.ok) {
             const errorBody = await geminiRes.text();
-            throw new Error(`Gemini API Error: ${geminiRes.status} - ${errorBody}`);
+            throw new Error(`Gemini Error: ${geminiRes.status} - ${errorBody}`);
         }
 
         const resultJson = await geminiRes.json();

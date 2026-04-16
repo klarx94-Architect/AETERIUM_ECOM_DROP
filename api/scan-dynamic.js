@@ -1,11 +1,6 @@
 import { dropeaQuery } from '../dropea_connector.js';
 import { createClient } from '@supabase/supabase-js';
 
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_ANON_KEY
-);
-
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
         return res.status(405).json({ success: false, error: "Method Not Allowed" });
@@ -14,9 +9,14 @@ export default async function handler(req, res) {
     try {
         const { prompt } = req.body;
         const apiKey = process.env.GEMINI_API_KEY;
-        if (!apiKey) {
-            throw new Error("GEMINI_API_KEY no configurada.");
-        }
+        const supabaseUrl = process.env.SUPABASE_URL;
+        const supabaseKey = process.env.SUPABASE_ANON_KEY;
+
+        if (!apiKey) throw new Error("GEMINI_API_KEY missing");
+        if (!supabaseUrl || !supabaseKey) throw new Error("Supabase config missing");
+
+        // Inicialización INTERNA para evitar crasheos de bootstrap
+        const supabase = createClient(supabaseUrl, supabaseKey);
 
         let filters = { minStock: 0, minMargin: 0, keyword: "" };
 
